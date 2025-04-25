@@ -783,13 +783,13 @@ int main() {
 
     // Create and place Tank 1
     int a = 2, b = 1;
-    tank* tank1 = new tank('1', 0, 1, &board.arr[a][b]); // Tank 1 at (3, 2)
+    tank* tank1 = new tank('1', 0, 1, &board.arr[a][b]);
     board.add_tank(tank1);
 
     // Create and place Tank 2
     int c = 2, d = 5;
-    // tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]); // Tank 2 at (2, 6)
-    // board.add_tank(tank2);
+    tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]); 
+    board.add_tank(tank2);
 
     // Add walls to the board
     wall* wall1 = new wall('w', &board.arr[1][1]); // Wall at (1, 1)
@@ -808,7 +808,7 @@ int main() {
 
     // Clean up dynamically allocated memory
     delete tank1;
-    // delete tank2;
+    delete tank2;
     delete wall1;
     delete wall2;
     delete mine1;
