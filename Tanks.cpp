@@ -470,10 +470,12 @@ struct game_master{
                 t2 = turn('2'); // Call the turn function with player '2'
             }
             process_shells();
+            // cout << "Done pro 1" << endl;
             if (!board->collisions.empty()) {
                 handle_cell_collisions(); // Handle cell collisions
             }
             process_shells();
+            // cout << "Done pro 2" << endl;
             if (!board->collisions.empty()) {
                 handle_cell_collisions(); // Handle cell collisions
             }
@@ -573,72 +575,109 @@ struct game_master{
     
     bool turn(char player) {
         cout << "Player " << player << "'s turn!" << endl;
-        string move = ask_algorithm(player); // Get the move from the player
     
         for (tank* t : board->tanks) {
             if (t->symbol == player) {
-                // Handle blank input
-                if (move == "skip") {
-                    cout << "Player " << player << " skipped their turn." << endl;
+                // Handle gear logic
+                if (t->gear == "forward") {
+                    string move = ask_algorithm(player); // Get the move from the player
+    
+                    if (move == "skip") {
+                        cout << "Player " << player << " skipped their turn." << endl;
+                        return true;
+                    } else if (move == "bw") {
+                        t->gear = "middle"; // Change gear to middle
+                        cout << "Ordering backwards move!" << endl;
+                        return true;
+                    } else {
+                        // Handle other moves (forward, rotate, shoot, etc.)
+                        return handle_move(t, move);
+                    }
+                } else if (t->gear == "middle") {
+                    string move = ask_algorithm(player); // Get the move from the player
+    
+                    if (move == "fw") {
+                        t->gear = "forward"; // Change gear to forward
+                        cout << "Tank is now ready to move forward!" << endl;
+                        return true;
+                    } else if (move == "skip") {
+                        t->gear = "backwards move"; // Change gear to backwards move
+                        cout << "Tank is now ready to move backwards!" << endl;
+                        return true;
+                    } else {
+                        cout << "Invalid move! Only 'forward' or 'skip' is allowed in middle gear." << endl;
+                        return false;
+                    }
+                } else if (t->gear == "backwards move") {
+                    // Automatically move backwards without asking for input
+                    t->move_backwards(*board);
+                    t->gear = "backward"; // Change gear to backward
+                    cout << "The tank moved backwards!" << endl;
                     return true;
-                }
+                } else if (t->gear == "backward") {
+                    string move = ask_algorithm(player); // Get the move from the player
     
-                // If gear is "middle", ignore all moves except "forward"
-                if (t->gear == "middle" && move != "fw") {
-                    cout << "Invalid move! Only 'forward' is allowed when gear is 'middle'." << endl;
-                    return false;
-                }
-    
-                // Handle "forward" move
-                if (move == "fw") {
-                    // Perform wall collision check for the new position after moving
-                    if (wall_coll_check(t, &board->arr[(t->x + t->directionx + board->n) % board->n][(t->y + t->directiony + board->m) % board->m])) {
-                        cout << "Wall collision detected!" << endl; // Handle collision
-                        return false; // Return false, meaning the move is invalid
+                    if (move == "skip") {
+                        cout << "Player " << player << " skipped their turn." << endl;
+                        return true;
+                    } else if (move == "bw") {
+                        t->move_backwards(*board); // Move backwards
+                        cout << "The tank moved backwards!" << endl;
+                        return true;
                     } else {
-                        t->move_forward(*board); // Move the tank forward
+                        // Handle other moves (forward, rotate, shoot, etc.)
+                        t->gear = "forward"; // Change gear to forward
+                        return handle_move(t, move);
                     }
-                    t->gear = "forward"; // Set gear to "forward"
-                }
-                // Handle "backward" move
-                else if (move == "bw") {
-                    // Perform wall collision check for the new position after moving backward with wrapping
-                    if (wall_coll_check(t, &board->arr[(t->x - t->directionx + board->n) % board->n][(t->y - t->directiony + board->m) % board->m])) {
-                        cout << "Wall collision detected!" << endl; // Handle collision
-                        return false; // Return false, meaning the move is invalid
-                    } else {
-                        t->move_backwards(*board); // Move the tank backward
-                    }
-                }
-                // Handle other moves
-                else if (move == "r4l") {
-                    t->rotate_4("left");
-                    t->gear = "forward"; // Set gear to "forward"
-                } else if (move == "r8l") {
-                    t->rotate_8("left");
-                    t->gear = "forward"; // Set gear to "forward"
-                } else if (move == "r4r") {
-                    t->rotate_4("right");
-                    t->gear = "forward"; // Set gear to "forward"
-                } else if (move == "r8r") {
-                    t->rotate_8("right");
-                    t->gear = "forward"; // Set gear to "forward"
-                } else if (move == "shoot") {
-                    // Check if the tank's shoot timer is 0
-                    if (t->shot_timer == 0) {
-                        t->shoot(board); // Allow the tank to shoot
-                        t->gear = "forward"; // Set gear to "forward"
-                    } else {
-                        cout << "Tank " << t->symbol << " isn't ready to shoot yet!" << endl;
-                        return false; // Return false, meaning the move is invalid
-                    }
-                } else {
-                    return false;
                 }
             }
         }
-        return true; // Return true if the turn was successful
+        return false; // Return false if no valid tank was found
     }
+    
+    bool handle_move(tank* t, const string& move) {
+        if (move == "fw") {
+            // Perform wall collision check for the new position after moving forward
+            if (wall_coll_check(t, &board->arr[(t->x + t->directionx + board->n) % board->n][(t->y + t->directiony + board->m) % board->m])) {
+                cout << "Wall collision detected!" << endl; // Handle collision
+                return false; // Return false, meaning the move is invalid
+            } else {
+                t->move_forward(*board); // Move the tank forward
+                t->gear = "forward"; // Set gear to forward
+                return true;
+            }
+        } else if (move == "r4l") {
+            t->rotate_4("left");
+            t->gear = "forward"; // Set gear to forward
+            return true;
+        } else if (move == "r8l") {
+            t->rotate_8("left");
+            t->gear = "forward"; // Set gear to forward
+            return true;
+        } else if (move == "r4r") {
+            t->rotate_4("right");
+            t->gear = "forward"; // Set gear to forward
+            return true;
+        } else if (move == "r8r") {
+            t->rotate_8("right");
+            t->gear = "forward"; // Set gear to forward
+            return true;
+        } else if (move == "shoot") {
+            // Check if the tank's shoot timer is 0
+            if (t->shot_timer == 0) {
+                t->shoot(board); // Allow the tank to shoot
+                t->gear = "forward"; // Set gear to forward
+                return true;
+            } else {
+                cout << "Tank " << t->symbol << " isn't ready to shoot yet!" << endl;
+                return false; // Return false, meaning the move is invalid
+            }
+        } else {
+            cout << "Invalid move!" << endl;
+            return false; // Invalid move
+        }
+    }
+    
     bool wall_coll_check(tank* t1, cell* dest) {
             // Check if the destination cell is empty or contains a wall
             if (dest->has_Object()) {
@@ -651,32 +690,72 @@ struct game_master{
     }
     
     void process_shells() {
-        // Process the shells on the board
-        for (shell* s : board->shells) {
-            s->shell_move_forward(*board); // Move the shell forward
+        // Copy of the shells list to avoid issues while deleting in-place
+        vector<shell*> shells_to_process = board->shells;
     
+        for (shell* s : shells_to_process) {
+            // Check if the shell still exists in the board's shell list
+            if (find(board->shells.begin(), board->shells.end(), s) == board->shells.end()) {
+                continue; // Skip this shell if it has already been removed
+            }
+    
+            // Move the shell forward
+            s->shell_move_forward(*board);
+    
+            // Count how many shells are in this cell
+            int shell_count = 0;
+            for (game_object* obj : s->curcell->objects) {
+                if (dynamic_cast<shell*>(obj)) {
+                    shell_count++;
+                }
+            }
+            cout << shell_count << " shell(s) in cell " << s->curcell->x << "," << s->curcell->y << endl;
+    
+            // If two or more shells are in the same cell, destroy all of them
+            if (shell_count >= 2) {
+                cout << "Handling shells in cell (" << s->curcell->x << ", " << s->curcell->y << ")" << endl;
+    
+                // Safely iterate over the objects in the cell and remove all shells
+                for (auto it = s->curcell->objects.begin(); it != s->curcell->objects.end();) {
+                    game_object* obj = *it;
+                    if (shell* other = dynamic_cast<shell*>(obj)) {
+                        cout << "Removing shell at (" << other->x << ", " << other->y << ")" << endl;
+    
+                        // Remove the shell from the board's shell list
+                        board->remove_shell(other);
+    
+                        // Remove the shell from the cell's objects vector
+                        it = s->curcell->objects.erase(it);
+    
+                        // Delete the shell
+                        delete other;
+                    } else {
+                        ++it; // Skip non-shell objects
+                    }
+                }
+                continue; // Skip remaining logic since this shell was destroyed
+            }
+    
+            // If the cell contains an object and it's a wall, handle wall collision
             if (s->curcell->has_Object()) {
                 game_object* obj = s->curcell->get_Object();
-                
-                // If the object is a wall, handle the collision with the wall
+    
                 if (obj->symbol == 'w') {
                     if (wall* w = dynamic_cast<wall*>(obj)) {
                         w->hp--;
                         if (w->hp <= 0) {
-                            s->curcell->remove_Object(w); // Remove the wall from the cell
-                            delete w; // Delete the wall object
+                            s->curcell->remove_Object(w);
+                            delete w;
                         }
                         s->curcell->remove_Object(s);
-                        board->remove_shell(s); // Remove the shell from the board
-                        delete s; // Delete the shell object
+                        board->remove_shell(s);
+                        delete s;
                     }
                 }
-    
-                // No need to handle shell + mine here anymore
             }
         }
     }
-    
+  
     string ask_algorithm(char player) {
         // Function to ask the player for their move
         string move;
@@ -703,14 +782,14 @@ int main() {
     game_board board(n, m, board_cells);
 
     // Create and place Tank 1
-    int a = 3, b = 2;
-    tank* tank1 = new tank('1', -1, 0, &board.arr[a][b]); // Tank 1 at (3, 2)
+    int a = 2, b = 1;
+    tank* tank1 = new tank('1', 0, 1, &board.arr[a][b]); // Tank 1 at (3, 2)
     board.add_tank(tank1);
 
     // Create and place Tank 2
-    int c = 1, d = 4;
-    tank* tank2 = new tank('2', -1, 0, &board.arr[c][d]); // Tank 2 at (1, 6)
-    board.add_tank(tank2);
+    int c = 2, d = 5;
+    // tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]); // Tank 2 at (2, 6)
+    // board.add_tank(tank2);
 
     // Add walls to the board
     wall* wall1 = new wall('w', &board.arr[1][1]); // Wall at (1, 1)
@@ -729,7 +808,7 @@ int main() {
 
     // Clean up dynamically allocated memory
     delete tank1;
-    delete tank2;
+    // delete tank2;
     delete wall1;
     delete wall2;
     delete mine1;
@@ -738,4 +817,7 @@ int main() {
     return 0;
 }
     // chcp 65001
+    // git add .
+    // git commit -m "your message"
+    // git push
 
