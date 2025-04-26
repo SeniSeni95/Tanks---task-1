@@ -3,6 +3,7 @@
 #include <string>
 #include <math.h>
 #include <algorithm>
+#include <unistd.h>
 #include "board.h"
 #include "game_objects.h"
 #include "algorithms.h"
@@ -21,6 +22,8 @@ struct game_board;
 struct cell;
 struct game_master;
 
+// Constants
+const int LOOKAHEAD_DEPTH = 2; // Lookahead depth for the algorithms
 
 struct game_master{
     game_board* board;
@@ -71,17 +74,10 @@ struct game_master{
                 }
             }
             bool t1 = turn('1'); // Call the turn function with player '1'
-            while (t1 == false) {
-                cout << "Invalid move! Please try again." << endl; // Handle invalid moves
-                t1 = turn('1'); // Call the turn function with player '1'
-            }
             bool t2 = turn('2'); // Call the turn function with player '2'
-            while (t2 == false) {
-                cout << "Invalid move! Please try again." << endl; // Handle invalid moves
-                t2 = turn('2'); // Call the turn function with player '2'
-            }
             game_over = board->do_step();
             board->print_board();
+            sleep(1);
         }
         cout << "Game over!" << endl; // Print game over message
     
@@ -110,58 +106,8 @@ struct game_master{
     
         for (tank* t : board->tanks) {
             if (t->symbol == player) {
-                // Handle gear logic
-                if (t->gear == "forward") {
-                    string move = ask_algorithm(player); // Get the move from the player
-    
-                    if (move == "skip") {
-                        cout << "Player " << player << " skipped their turn." << endl;
-                        return true;
-                    } else if (move == "bw") {
-                        t->gear = "middle"; // Change gear to middle
-                        cout << "Ordering backwards move!" << endl;
-                        return true;
-                    } else {
-                        // Handle other moves (forward, rotate, shoot, etc.)
-                        return t->handle_move(board, move);
-                    }
-                } else if (t->gear == "middle") {
-                    string move = ask_algorithm(player); // Get the move from the player
-    
-                    if (move == "fw") {
-                        t->gear = "forward"; // Change gear to forward
-                        cout << "Tank is now ready to move forward!" << endl;
-                        return true;
-                    } else if (move == "skip") {
-                        t->gear = "backwards move"; // Change gear to backwards move
-                        cout << "Tank is now ready to move backwards!" << endl;
-                        return true;
-                    } else {
-                        cout << "Invalid move! Only 'forward' or 'skip' is allowed in middle gear." << endl;
-                        return false;
-                    }
-                } else if (t->gear == "backwards move") {
-                    // Automatically move backwards without asking for input
-                    t->move_backwards(*board);
-                    t->gear = "backward"; // Change gear to backward
-                    cout << "The tank moved backwards!" << endl;
-                    return true;
-                } else if (t->gear == "backward") {
-                    string move = ask_algorithm(player); // Get the move from the player
-    
-                    if (move == "skip") {
-                        cout << "Player " << player << " skipped their turn." << endl;
-                        return true;
-                    } else if (move == "bw") {
-                        t->move_backwards(*board); // Move backwards
-                        cout << "The tank moved backwards!" << endl;
-                        return true;
-                    } else {
-                        // Handle other moves (forward, rotate, shoot, etc.)
-                        t->gear = "forward"; // Change gear to forward
-                        return t->handle_move(board, move);
-                    }
-                }
+                t->turn(board, ask_algorithm(player));
+                break;
             }
         }
         return false; // Return false if no valid tank was found
@@ -175,11 +121,18 @@ struct game_master{
         // return move; // Return the move
 
         // Use the algorithm to decide the move
-        if (player == '1') {
-            return algo1->decide_move(board, board->tanks[0]).first; // Get the move from the first algorithm
-        } else {
-            return algo2->decide_move(board, board->tanks[1]).first; // Get the move from the second algorithm
+        cout << "Asking algorithm for player " << player << "'s move..." << endl;
+        string move;
+
+        for (tank* t : board->tanks) {
+            if (t->symbol == player) {
+                move = algo1->decide_move(board, t, LOOKAHEAD_DEPTH).first; // Get the move from the algorithm
+                break;
+            }
         }
+
+        cout << "Algorithm decided move: " << move << endl;
+        return move; // Return the move
     }
 };
 
@@ -229,6 +182,8 @@ int main() {
     master.game();
 
     // Clean up dynamically allocated memory
+    delete algo1;
+    delete algo2;
     delete tank1;
     delete tank2;
     delete wall1;

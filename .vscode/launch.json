@@ -9,13 +9,13 @@
                 "name": "Debug C++",
                 "type": "cppdbg",
                 "request": "launch",
-                "program": "${workspaceFolder}/Tanks.exe", // or your output file
+                "program": "${workspaceFolder}/Tanks", // or your output file
                 "args": [],
                 "stopAtEntry": false,
                 "cwd": "${workspaceFolder}",
                 "environment": [],
                 "externalConsole": false,
-                "MIMode": "gdb", // or "lldb" on Mac, "cppvsdbg" on Windows with MSVC
+                "MIMode": "lldb", // or "lldb" on Mac, "cppvsdbg" on Windows with MSVC
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",

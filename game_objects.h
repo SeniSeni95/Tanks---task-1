@@ -14,6 +14,14 @@
 
 using namespace std;
 
+// Forward declarations
+struct game_board;
+struct cell;
+struct tank;
+struct shell;
+struct mine;
+struct wall;
+
 struct game_object {
     int x;
     int y;
@@ -59,7 +67,9 @@ struct tank : public game_object {
     void shoot(game_board* board);
     string get_cannon_symbol();
     void set_cannon_symbol();
+    bool turn(game_board* board, const string& move);
     bool handle_move(game_board* board, const string& move);
+    bool wall_coll_check(cell* dest);
     void print();
 };
 

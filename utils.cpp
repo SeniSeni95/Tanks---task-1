@@ -1,60 +1,50 @@
-#include <iostream>
-#include <cmath>
-#include <algorithm>
-#include <limits>
 #include "utils.h"
 using namespace std;
 
-struct Vector2D {
-    double x, y;
-
-    Vector2D operator+(const Vector2D& other) const {
-        return {x + other.x, y + other.y};
-    }
-
-    Vector2D operator*(double scalar) const {
-        return {x * scalar, y * scalar};
-    }
-
-    Vector2D operator-(const Vector2D& other) const {
-        return {x - other.x, y - other.y};
-    }
-
-    // Chebyshev (L∞) norm
-    double chebyshevDistance(const Vector2D& other) const {
-        return std::max(std::abs(x - other.x), std::abs(y - other.y));
-    }
-};
-
-// Finds the closest Chebyshev distance between a point and a parametric line
-double chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point) {
-    // Binary search for t in a reasonable range
-    // (left is 0 because we want to only consider the line segment starting at linePoint, not the entire line)
-    double left = 0, right = 1e6;
-    double bestDist = std::numeric_limits<double>::max();
-
-    for (int i = 0; i < 100; ++i) {  // Enough iterations for good precision
-        double mid1 = left + (right - left) / 3.0;
-        double mid2 = right - (right - left) / 3.0;
-
-        Vector2D p1 = linePoint + lineDir * mid1;
-        Vector2D p2 = linePoint + lineDir * mid2;
-
-        double d1 = p1.chebyshevDistance(point);
-        double d2 = p2.chebyshevDistance(point);
-
-        bestDist = std::min(bestDist, std::min(d1, d2));
-
-        if (d1 < d2)
-            right = mid2;
-        else
-            left = mid1;
-    }
-
-    return bestDist;
+Vector2D Vector2D::operator+(const Vector2D& other) const {
+    return {x + other.x, y + other.y};
 }
 
-std::pair<int, int> rotate_4(int directionx, int directiony, string direction) {
+Vector2D Vector2D::operator*(double scalar) const {
+    return {x * scalar, y * scalar};
+}
+
+Vector2D Vector2D::operator-(const Vector2D& other) const {
+    return {x - other.x, y - other.y};
+}
+
+// Chebyshev (L∞) norm
+double Vector2D::chebyshevDistance(const Vector2D& other) const {
+    return std::max(std::abs(x - other.x), std::abs(y - other.y));
+}
+
+// Finds the closest Chebyshev distance between a point and a parametric line
+double chebyshevDistanceToLine(Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, int n, int m) {
+    if (point.chebyshevDistance(linePoint) < (point + lineDir).chebyshevDistance(linePoint)) {
+        return -1; // The point is "behind" the line
+    }
+
+    double bestDist = std::numeric_limits<double>::max();
+    while (true) {
+        // Calculate the distance from the point to the line
+        double dist = point.chebyshevDistance(linePoint);
+        if (dist < bestDist) {
+            bestDist = dist;
+        }
+
+        // Move along the line
+        linePoint = linePoint + lineDir;
+
+        // Check if the new point is out of bounds
+        if (linePoint.x < 0 || linePoint.x >= n || linePoint.y < 0 || linePoint.y >= m) {
+            break; // Exit the loop if out of bounds
+        }
+    }
+
+    return bestDist; // Return the closest distance found
+}
+
+std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction) {
     // Calculate the angle in radians
     double degree = atan2(directiony, directionx) * (180.0 / M_PI); // Convert radians to degrees
     if (direction == "left") {
@@ -77,8 +67,8 @@ std::pair<int, int> rotate_4(int directionx, int directiony, string direction) {
     return {directionx, directiony}; // Return the new direction
 }
 
-std::pair<int, int> rotate_8(int directionx, int directiony, string direction) {
-        // Calculate the angle in radians
+std::pair<int, int> rotate_8(int directionx, int directiony, std::string direction) {
+    // Calculate the angle in radians
     double degree = atan2(directiony, directionx) * (180.0 / M_PI); // Convert radians to degrees
     if (direction == "left") {
         degree += 45;

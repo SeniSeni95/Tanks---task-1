@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <string>
 
 struct Vector2D {
     double x, y;
@@ -17,7 +18,7 @@ struct Vector2D {
 };
 
 // Finds the closest Chebyshev distance between a point and a parametric line
-double chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point);
+double chebyshevDistanceToLine(Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, int n, int m);
 
 std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction);
 std::pair<int, int> rotate_8(int directionx, int directiony, std::string direction);

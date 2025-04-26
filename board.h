@@ -1,13 +1,20 @@
-// filepath: /Users/yrosen/Personal/homework/adv-concepts/Tanks---task-1/board.h
 #ifndef BOARD_H
 #define BOARD_H
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include "game_objects.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 struct game_object; // Forward declaration of game_object
-struct tank;       // Forward declaration of tank
-struct shell;      // Forward declaration of shell
+struct tank;        // Forward declaration of tank
+struct shell;       // Forward declaration of shell
+struct mine;        // Forward declaration of mine
+struct wall;        // Forward declaration of wall
 
 struct cell {
     int x;
@@ -50,6 +57,8 @@ struct game_board {
     bool do_step();
     void process_shells();
     bool handle_cell_collisions();
+
+    void destroy_all_objects();
 };
 
 #endif // BOARD_H

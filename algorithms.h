@@ -5,9 +5,14 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <math.h>
 #include "utils.h"
 #include "board.h"
 #include "game_objects.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 const int OUT_OF_BOUNDS = -10000; // Constant for out of bounds score
 const int DEATH = -100000;       // Constant for death score
@@ -19,22 +24,22 @@ protected:
 
 public:
     algorithm();
-    virtual double base_score(game_board* board_copy, tank* self_copy) = 0;
+    virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) = 0;
 
     void move_other_tanks(game_board* board, tank* self);
     void do_move(game_board* board, tank* self, const std::string& move);
-    double score_single_move(game_board* board, tank* self, const std::string& move);
-    virtual double score_forward_move(game_board* board, tank* self);
-    virtual double score_backward_move(game_board* board, tank* self);
-    virtual double score_rotate_left_quarter(game_board* board, tank* self);
-    virtual double score_rotate_right_quarter(game_board* board, tank* self);
-    virtual double score_rotate_left_eighth(game_board* board, tank* self);
-    virtual double score_rotate_right_eighth(game_board* board, tank* self);
-    virtual double score_shoot(game_board* board, tank* self);
-    virtual double score_skip(game_board* board, tank* self);
+    double score_single_move(game_board* board, tank* self, const std::string& move, int lookahead);
+    virtual double score_forward_move(game_board* board, tank* self, int lookahead);
+    virtual double score_backward_move(game_board* board, tank* self, int lookahead);
+    virtual double score_rotate_left_quarter(game_board* board, tank* self, int lookahead);
+    virtual double score_rotate_right_quarter(game_board* board, tank* self, int lookahead);
+    virtual double score_rotate_left_eighth(game_board* board, tank* self, int lookahead);
+    virtual double score_rotate_right_eighth(game_board* board, tank* self, int lookahead);
+    virtual double score_shoot(game_board* board, tank* self, int lookahead);
+    virtual double score_skip(game_board* board, tank* self, int lookahead);
     tank* get_self_in_board_copy(game_board* board_copy, tank* self);
     void fetch_walls_and_mines(game_board* board);
-    std::pair<std::string, double> decide_move(game_board* board, tank* self);
+    std::pair<std::string, double> decide_move(game_board* board, tank* self, int lookahead);
 };
 
 struct shell_avoidance_algorithm : public algorithm {
@@ -45,7 +50,7 @@ protected:
 public:
     shell_avoidance_algorithm();
     double score_position(int x, int y, game_board* board_copy);
-    double base_score(game_board* board_copy, tank* self_copy) override;
+    double base_score(game_board* board_copy, tank* self_copy, int lookahead) override;
 };
 
 #endif // ALGORITHMS_H
