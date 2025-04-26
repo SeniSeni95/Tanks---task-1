@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "board.h"
 #include "game_objects.h"
+#include "algorithms.h"
 using namespace std;
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -26,11 +27,18 @@ struct game_master{
     bool game_over;
     bool out_of_shells;
     int time_out_steps;
-    game_master(game_board* board) {
+
+    algorithm* algo1;
+    algorithm* algo2;
+
+    game_master(game_board* board, algorithm* algo1, algorithm* algo2) {
         this->board = board; // Initialize the game board
         this->game_over = false; // Set game_over to false initially
         this->time_out_steps=40;
         this->out_of_shells=false;
+
+        this->algo1 = algo1; // Initialize the first algorithm
+        this->algo2 = algo2; // Initialize the second algorithm
     }
     void start_game() {
         // Function to start the game
@@ -160,11 +168,18 @@ struct game_master{
     }
   
     string ask_algorithm(char player) {
-        // Function to ask the player for their move
-        string move;
-        cout << "Enter your move (forward/backward/rotate left/rotate right/shoot): ";
-        cin >> move; // Get the move from the player
-        return move; // Return the move
+        // // Function to ask the player for their move
+        // string move;
+        // cout << "Enter your move (forward/backward/rotate left/rotate right/shoot): ";
+        // cin >> move; // Get the move from the player
+        // return move; // Return the move
+
+        // Use the algorithm to decide the move
+        if (player == '1') {
+            return algo1->decide_move(board, board->tanks[0]).first; // Get the move from the first algorithm
+        } else {
+            return algo2->decide_move(board, board->tanks[1]).first; // Get the move from the second algorithm
+        }
     }
 };
 
@@ -202,8 +217,12 @@ int main() {
     mine* mine1 = new mine('m', &board.arr[0][4]); // Mine at (0, 4)
     mine* mine2 = new mine('m', &board.arr[4][2]); // Mine at (4, 2)
 
+    // Initialize algorithms
+    algorithm* algo1 = new shell_avoidance_algorithm();
+    algorithm* algo2 = new shell_avoidance_algorithm();
+
     // Initialize the game master
-    game_master master(&board);
+    game_master master(&board, algo1, algo2);
 
     // Start the game
     master.start_game();
