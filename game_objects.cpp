@@ -99,14 +99,14 @@ void shell::print() {
     cout << "[ " << shell_symbol << "]";
 }
 
-tank::tank(char symbol, int directiony, int directionx, cell* curcell) {
+tank::tank(char symbol, int directionx, int directiony, cell* curcell) {
     this->curcell = curcell;
     curcell->add_Object(this);
     this->x = curcell->get_X();
     this->y = curcell->get_Y();
     this->symbol = symbol;
-    this->directionx = directiony;
-    this->directiony = directionx;
+    this->directionx = directionx;
+    this->directiony = directiony;
     set_cannon_symbol();
     this->shells = 16;
     this->shot_timer = 0;

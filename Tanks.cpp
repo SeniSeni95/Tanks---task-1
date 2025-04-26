@@ -23,7 +23,7 @@ struct cell;
 struct game_master;
 
 // Constants
-const int LOOKAHEAD_DEPTH = 2; // Lookahead depth for the algorithms
+const int LOOKAHEAD_DEPTH = 5; // Lookahead depth for the algorithms
 
 struct game_master{
     game_board* board;
@@ -73,9 +73,10 @@ struct game_master{
                     cout << "Tank " << t->symbol << "'s shot timer reduced to " << t->shot_timer << endl;
                 }
             }
+
+            game_over = board->do_step();
             bool t1 = turn('1'); // Call the turn function with player '1'
             bool t2 = turn('2'); // Call the turn function with player '2'
-            game_over = board->do_step();
             board->print_board();
             sleep(1);
         }
@@ -122,17 +123,22 @@ struct game_master{
 
         // Use the algorithm to decide the move
         cout << "Asking algorithm for player " << player << "'s move..." << endl;
-        string move;
 
         for (tank* t : board->tanks) {
             if (t->symbol == player) {
-                move = algo1->decide_move(board, t, LOOKAHEAD_DEPTH).first; // Get the move from the algorithm
-                break;
+                std::pair<std::string, double> result;
+
+                if (player == '1') {
+                    result = algo1->decide_move(board, t, LOOKAHEAD_DEPTH); // Get the move from the algorithm
+                } else if (player == '2') {
+                    result = algo2->decide_move(board, t, LOOKAHEAD_DEPTH); // Get the move from the algorithm
+                }
+
+                cout << "Algorithm returned move: " << result.first << " with score: " << result.second << endl;
+
+                return result.first; // Return the move
             }
         }
-
-        cout << "Algorithm decided move: " << move << endl;
-        return move; // Return the move
     }
 };
 
@@ -172,7 +178,7 @@ int main() {
 
     // Initialize algorithms
     algorithm* algo1 = new shell_avoidance_algorithm();
-    algorithm* algo2 = new shell_avoidance_algorithm();
+    algorithm* algo2 = new chasing_algorithm();
 
     // Initialize the game master
     game_master master(&board, algo1, algo2);
@@ -193,8 +199,4 @@ int main() {
 
     return 0;
 }
-    // chcp 65001
-    // git add .
-    // git commit -m "your message"
-    // git push
 

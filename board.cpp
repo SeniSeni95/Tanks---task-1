@@ -100,7 +100,7 @@ game_board* game_board::deep_copy() {
 
             for (game_object* obj : old_objects) {
                 if (tank* t = dynamic_cast<tank*>(obj)) {
-                    tank* new_tank = new tank(t->symbol, t->directiony, t->directionx, c);
+                    tank* new_tank = new tank(t->symbol, t->directionx, t->directiony, c);
                     new_board->add_tank(new_tank);
                 } else if (shell* s = dynamic_cast<shell*>(obj)) {
                     shell* new_shell = new shell(c, s->directionx, s->directiony);

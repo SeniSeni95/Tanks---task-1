@@ -11,15 +11,9 @@ void algorithm::move_other_tanks(game_board* board, tank* self) {
 }
 
 void algorithm::do_move(game_board* board, tank* self, const std::string& move) {
-    board->print_board();
-    std::cout << "Attempting move: " << move << " for tank " << self->symbol << std::endl;
-    self->turn(board, move);
-    move_other_tanks(board, self);
-    board->print_board();
-    std::cout << "Attempting move: " << move << " for tank " << self->symbol << std::endl;
     board->do_step();
-    board->print_board();
-    std::cout << std::endl;
+    self->turn(board, move);
+    // move_other_tanks(board, self);
 }
 
 double algorithm::score_single_move(game_board* board, tank* self, const std::string& move, int lookahead) {
@@ -36,61 +30,11 @@ double algorithm::score_single_move(game_board* board, tank* self, const std::st
 }
 
 double algorithm::score_forward_move(game_board* board, tank* self, int lookahead) {
-    game_board* board_copy = board->deep_copy();
-    tank* self_copy = get_self_in_board_copy(board_copy, self);
-
-    do_move(board_copy, self_copy, "fw");
-
-    double score = base_score(board_copy, self_copy, lookahead);
-
-    board_copy->destroy_all_objects();
-    delete board_copy;
-
-    return score;
+    return score_single_move(board, self, "fw", lookahead);
 }
 
 double algorithm::score_backward_move(game_board* board, tank* self, int lookahead) {
-    game_board* board_copy = board->deep_copy();
-    tank* self_copy = get_self_in_board_copy(board_copy, self);
-
-    double score;
-
-    if (self->gear == "forward") {
-        do_move(board_copy, self_copy, "bw");
-        double score_now = base_score(board_copy, self_copy, 0);
-
-        do_move(board_copy, self_copy, "bw");
-        double score_next = base_score(board_copy, self_copy, 0);
-
-        do_move(board_copy, self_copy, "bw");
-        double score_after_move = base_score(board_copy, self_copy, lookahead);
-
-        if (score_now == DEATH || score_next == DEATH || score_after_move == DEATH) {
-            score = DEATH;
-        } else {
-            score = score_now * 0.5 + score_next * 0.3 + score_after_move * 0.2;
-        }
-    } else if (self->gear == "middle") {
-        do_move(board_copy, self_copy, "bw");
-        double score_now = base_score(board_copy, self_copy, 0);
-
-        do_move(board_copy, self_copy, "bw");
-        double score_after_move = base_score(board_copy, self_copy, lookahead);
-
-        if (score_now == DEATH || score_after_move == DEATH) {
-            score = DEATH;
-        } else {
-            score = score_now * 0.7 + score_after_move * 0.3;
-        }
-    } else {
-        do_move(board_copy, self_copy, "bw");
-        score = base_score(board_copy, self_copy, lookahead);
-    }
-
-    board_copy->destroy_all_objects();
-    delete board_copy;
-
-    return score;
+    return score_single_move(board, self, "bw", lookahead);
 }
 
 double algorithm::score_rotate_left_quarter(game_board* board, tank* self, int lookahead) {
@@ -166,15 +110,15 @@ std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* s
     else return {"skip", max_score};
 }
 
-shell_avoidance_algorithm::shell_avoidance_algorithm() : algorithm(), shell_danger_radius(2), mine_danger_radius(10) {}
+shell_avoidance_algorithm::shell_avoidance_algorithm() : algorithm(), shell_danger_radius(2), mine_danger_radius(2) {}
 
-double shell_avoidance_algorithm::score_position(int x, int y, game_board* board_copy) {
+double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* self_copy) {
     double score = 0;
 
     for (shell* s : board_copy->shells) {
         Vector2D shell_pos = {(double) s->x, (double) s->y};
         Vector2D shell_dir = {(double) s->directionx, (double) s->directiony};
-        Vector2D tank_pos = {(double) x, (double) y};
+        Vector2D tank_pos = {(double) self_copy->x, (double) self_copy->y};
 
         if (shell_pos.x == tank_pos.x && shell_pos.y == tank_pos.y) {
             return DEATH;
@@ -191,7 +135,7 @@ double shell_avoidance_algorithm::score_position(int x, int y, game_board* board
 
     for (mine* m : mines) {
         Vector2D mine_pos = {(double) m->x,(double) m->y};
-        Vector2D tank_pos = {(double) x, (double) y};
+        Vector2D tank_pos = {(double) self_copy->x, (double) self_copy->y};
 
         double distance_to_mine = tank_pos.chebyshevDistance(mine_pos);
 
@@ -218,10 +162,12 @@ double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_
     }
     if (!tank_exists) {
         return DEATH; // Tank does not exist in the board copy
+    } else if (board_copy->tanks.size() == 1) {
+        return WIN; // Tank is the only one left
     }
     
     fetch_walls_and_mines(board_copy);
-    double score = score_position(self_copy->x, self_copy->y, board_copy);
+    double score = score_position(board_copy, self_copy);
 
     if (score == DEATH) {
         return DEATH; // Tank is dead
@@ -233,8 +179,84 @@ double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_
             return DEATH;
         }
 
-        // Next score is weighted less heavily because the future is uncertain
-        score = score * 0.7 + next_score * 0.3;
+        // Next score is weighted more heavily because it's where we'll end up
+        score = score * 0.15 + next_score * 0.85;
+    }
+
+    return score;
+}
+
+
+/**
+ * Use DFS to find the shortest path from start to end (cannot cross walls).
+ */
+double find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
+    std::vector<std::vector<bool>> visited(board->n, std::vector<bool>(board->m, false));
+    std::queue<std::pair<Vector2D, int>> q; // Pair of position and distance
+    q.push({start, 0});
+    visited[start.x][start.y] = true;
+
+    while (!q.empty()) {
+        auto [current, dist] = q.front();
+        q.pop();
+
+        if (current.x == end.x && current.y == end.y) {
+            return dist;
+        }
+
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                if (dx == 0 && dy == 0) {
+                    continue; // Skip the current position
+                }
+
+                int new_x = ((int)round(current.x) + dx + board->n) % board->n;
+                int new_y = ((int)round(current.y) + dy + board->m) % board->m;
+
+                if (new_x >= 0 && new_x < board->n && new_y >= 0 && new_y < board->m && !visited[new_x][new_y]) {
+                    if (board->arr[new_x][new_y].has_Object()) {
+                        game_object* obj = board->arr[new_x][new_y].get_Object();
+                        if (obj->symbol == 'w' || obj->symbol == 'm') {
+                            continue; // Skip walls and mines
+                        }
+                    }
+                    visited[new_x][new_y] = true;
+                    Vector2D new_pos = {(double) new_x, (double) new_y};
+                    q.push({new_pos, dist + 1});
+                }
+            }
+        }
+    }
+
+    return std::numeric_limits<double>::max(); // No path found
+}
+
+
+chasing_algorithm::chasing_algorithm() : shell_avoidance_algorithm() {
+    shell_danger_radius = 2;
+    mine_danger_radius = 2;
+}
+
+double chasing_algorithm::score_position(game_board* board_copy, tank* self_copy) {
+    double score = shell_avoidance_algorithm::score_position(board_copy, self_copy);
+
+    if (score == DEATH) {
+        return DEATH;
+    }
+
+    for (tank* t : board_copy->tanks) {
+        if (t->symbol != self_copy->symbol) {
+            Vector2D tank_pos = {(double) self_copy->x, (double) self_copy->y};
+            Vector2D enemy_tank_pos = {(double) t->x, (double) t->y};
+
+            double shortest_path = find_shortest_path(tank_pos, enemy_tank_pos, board_copy);
+
+            if (shortest_path < 7) {
+                score += pow(7.0 / max(1.0, shortest_path), 1.5); // Closer to the enemy tank, higher the score
+            }
+
+            break;
+        }
     }
 
     return score;

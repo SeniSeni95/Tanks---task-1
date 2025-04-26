@@ -16,6 +16,7 @@
 
 const int OUT_OF_BOUNDS = -10000; // Constant for out of bounds score
 const int DEATH = -100000;       // Constant for death score
+const int WIN = 20; // Constant for win score (not as high as death as it isn't guaranteed)
 
 struct algorithm {
 protected:
@@ -49,8 +50,20 @@ protected:
 
 public:
     shell_avoidance_algorithm();
-    double score_position(int x, int y, game_board* board_copy);
-    double base_score(game_board* board_copy, tank* self_copy, int lookahead) override;
+    virtual double score_position(game_board* board_copy, tank* self_copy);
+    virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) override;
+};
+
+double find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
+
+struct chasing_algorithm : public shell_avoidance_algorithm {
+protected:
+    int shell_danger_radius;
+    int mine_danger_radius;
+
+public:
+    chasing_algorithm();
+    virtual double score_position(game_board* board_copy, tank* self_copy) override;
 };
 
 #endif // ALGORITHMS_H
