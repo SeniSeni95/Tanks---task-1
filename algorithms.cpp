@@ -94,7 +94,9 @@ void algorithm::fetch_walls_and_mines(game_board* board) {
     }
 }
 
-std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* self, int lookahead) {
+std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* self, int lookahead, bool first_call) {
+    string state = board->get_board_state();
+
     double forward = score_forward_move(board, self, lookahead);
     double backward = score_backward_move(board, self, lookahead);
     double rotate_left_quarter = score_rotate_left_quarter(board, self, lookahead);
@@ -104,18 +106,41 @@ std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* s
     double shoot = score_shoot(board, self, lookahead);
     double skip = score_skip(board, self, lookahead);
 
-    // if (lookahead == 2) {
-    //     cout << "Forward: " << forward << endl;
-    //     cout << "Backward: " << backward << endl;
-    //     cout << "Rotate left quarter: " << rotate_left_quarter << endl;
-    //     cout << "Rotate right quarter: " << rotate_right_quarter << endl;
-    //     cout << "Rotate left eighth: " << rotate_left_eighth << endl;
-    //     cout << "Rotate right eighth: " << rotate_right_eighth << endl;
-    //     cout << "Shoot: " << shoot << endl;
-    //     cout << "Skip: " << skip << endl;
-    // }
+    if (first_call) {
+        cout << "Forward: " << forward << endl;
+        cout << "Backward: " << backward << endl;
+        cout << "Rotate left quarter: " << rotate_left_quarter << endl;
+        cout << "Rotate right quarter: " << rotate_right_quarter << endl;
+        cout << "Rotate left eighth: " << rotate_left_eighth << endl;
+        cout << "Rotate right eighth: " << rotate_right_eighth << endl;
+        cout << "Shoot: " << shoot << endl;
+        cout << "Skip: " << skip << endl;
+    }
 
-    double max_score = std::max({forward, backward, rotate_left_quarter, rotate_right_quarter, rotate_left_eighth, rotate_right_eighth, shoot, skip});
+    vector<double> scores = {forward, backward, rotate_left_quarter, rotate_right_quarter, rotate_left_eighth, rotate_right_eighth, shoot, skip};
+    double max_score = *std::max_element(scores.begin(), scores.end());
+
+    if (first_call && false) {
+        if (board_states.find(state) != board_states.end()) {
+            cout << "State already seen: " << endl;
+            // Choose 2nd best move if the state has already been seen (we're in a loop)
+            scores.erase(std::remove(scores.begin(), scores.end(), max_score), scores.end());
+            double second_best_score = *std::max_element(scores.begin(), scores.end());
+            if (second_best_score != DEATH) {
+                max_score = second_best_score;
+            }
+        }
+
+        // Add to board_states map state and time
+        board_states[state] = time(0);
+        if (board_states.size() > (size_t) (board->n + board->m)) {
+            // Remove oldest state
+            auto oldest = std::min_element(board_states.begin(), board_states.end(), [](const auto& a, const auto& b) {
+                return a.second < b.second;
+            });
+            board_states.erase(oldest);
+        }
+    }
 
     if (max_score == forward) return {"fw", max_score};
     else if (max_score == backward) return {"bw", max_score};
@@ -142,7 +167,7 @@ double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* s
         }
 
         // Returns pair of distance from the trajectory line and actual distance to the shell
-        std::pair<int, int> dists = chebyshevDistanceToLine(shell_pos, shell_dir, tank_pos, board_copy->n, board_copy->m);
+        std::pair<int, int> dists = chebyshevDistanceToLine(shell_pos, shell_dir, tank_pos, board_copy);
 
         int distance_to_trajectory = dists.first;
         int distance_to_shell = dists.second;
@@ -198,12 +223,12 @@ double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_
     }
 
     if (lookahead > 0) {
-        double next_score = decide_move(board_copy, self_copy, lookahead - 1).second;
+        double next_score = decide_move(board_copy, self_copy, lookahead - 1, false).second;
         if (next_score == DEATH) {
             return DEATH;
         }
 
-        score = score * 0.2 + next_score * 0.8;
+        score = score * 0.4 + next_score * 0.6; // Weighted average
     }
 
     return score;
@@ -233,17 +258,19 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
                     continue; // Skip the current position
                 }
 
-                int new_x = ((int)round(current.x) + dx + board->n) % board->n;
-                int new_y = ((int)round(current.y) + dy + board->m) % board->m;
+                int new_x = (current.x + dx + board->n) % board->n;
+                int new_y = (current.y + dy + board->m) % board->m;
 
-                if (new_x >= 0 && new_x < board->n && new_y >= 0 && new_y < board->m && !visited[new_x][new_y]) {
+                if (!visited[new_x][new_y]) {
+                    visited[new_x][new_y] = true;
+
                     if (board->arr[new_x][new_y].has_Object()) {
                         game_object* obj = board->arr[new_x][new_y].get_Object();
                         if (obj->symbol == 'w' || obj->symbol == 'm') {
                             continue; // Skip walls and mines
                         }
                     }
-                    visited[new_x][new_y] = true;
+
                     Vector2D new_pos = {new_x, new_y};
                     q.push({new_pos, dist + 1});
                 }
@@ -296,10 +323,7 @@ double chasing_algorithm::score_position(game_board* board_copy, tank* self_copy
             Vector2D enemy_tank_pos = {t->x, t->y};
 
             int shortest_path = find_shortest_path(tank_pos, enemy_tank_pos, board_copy);
-
-            if (shortest_path < 7) {
-                score += 5.0 / (double) (shortest_path + 1); // Closer to the enemy tank, higher the score
-            }
+            score += pow(15.0 / (double) (shortest_path + 1), 1.5); // Closer to the enemy tank, higher the score
 
             break;
         }
@@ -326,11 +350,12 @@ double chasing_algorithm::score_shoot(game_board* board, tank* self, int lookahe
             Vector2D enemy_tank_pos = {t->x, t->y};
             Vector2D shell_pos = {self->x + self->directionx, self->y + self->directiony};
             Vector2D shell_dir = {self->directionx, self->directiony};
-            std::pair<int, int> dists = chebyshevDistanceToLine(shell_pos, shell_dir, enemy_tank_pos, board->n, board->m);
+            std::pair<int, int> dists = chebyshevDistanceToLine(shell_pos, shell_dir, enemy_tank_pos, board);
+
             if (dists.first == 0) {
                 // The enemy tank is in the line of fire
                 int distance_to_shell = dists.second;
-                score += 8.0 / (double) (distance_to_shell + 1);
+                score += pow(20.0 / (double) (distance_to_shell + 1), 2);
 
                 if (t->directionx == self->directionx && t->directiony == self->directiony) {
                     // The enemy tank is moving in the same direction as the shell, will be more difficult to evade

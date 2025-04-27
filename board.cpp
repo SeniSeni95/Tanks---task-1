@@ -89,6 +89,37 @@ void game_board::print_board() {
     }
 }
 
+string game_board::get_board_state() {
+    std::string state;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (arr[i][j].has_Object()) {
+                game_object* obj = arr[i][j].get_Object();
+                state += obj->get_symbol(); // Append the symbol of the object
+                if (obj->symbol == 'w') {
+                    wall* w = dynamic_cast<wall*>(obj);
+                    state += std::to_string(w->hp); // Append the HP of the wall
+                }
+            } else {
+                state += ' '; // Append a space if no object is present
+            }
+        }
+        state += '\n'; // New line after each row
+    }
+
+    for (tank* t : tanks) {
+        state += to_string(t->shot_timer);
+        state += to_string(t->shells);
+        state += t->gear;
+    }
+
+    for (shell* s : shells) {
+        state += to_string(s->just_created);
+    }
+
+    return state;
+}
+
 game_board* game_board::deep_copy() {
     game_board* new_board = new game_board(n, m, arr);
 
@@ -100,7 +131,7 @@ game_board* game_board::deep_copy() {
 
             for (game_object* obj : old_objects) {
                 if (tank* t = dynamic_cast<tank*>(obj)) {
-                    tank* new_tank = new tank(t->symbol, t->directionx, t->directiony, c);
+                    tank* new_tank = new tank(t->symbol, t->directionx, t->directiony, c, t->algo);
                     new_board->add_tank(new_tank);
                 } else if (shell* s = dynamic_cast<shell*>(obj)) {
                     shell* new_shell = new shell(c, s->directionx, s->directiony);
@@ -229,7 +260,7 @@ bool game_board::handle_cell_collisions() {
                 c->remove_Object(s);
                 remove_shell(s);
                 game_over = true;
-            } else if (tank* t = dynamic_cast<tank*>(first_obj)) {
+            } else if (tank* _ = dynamic_cast<tank*>(first_obj)) {
                 for (auto it = c->objects.begin(); it != c->objects.end();) {
                     game_object* obj = *it;
                     if (dynamic_cast<shell*>(obj) || dynamic_cast<mine*>(obj)) {

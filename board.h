@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include "game_objects.h"
+using namespace std;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -52,6 +53,7 @@ struct game_board {
     void remove_shell(shell* s);
     void print_board();
     game_board* deep_copy();
+    string get_board_state();
 
     bool do_half_step();
     bool do_step();

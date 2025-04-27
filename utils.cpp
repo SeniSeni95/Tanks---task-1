@@ -22,7 +22,14 @@ int Vector2D::chebyshevDistance(const Vector2D& other) const {
 }
 
 // Finds the closest Chebyshev distance between a point and a parametric line
-std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, int n, int m) {
+std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, game_board* board) {
+    if (point.x == linePoint.x && point.y == linePoint.y) {
+        return {0, 0}; // The point is on the line
+    }
+
+    int n = board->n;
+    int m = board->m;
+
     Vector2D newPoint = linePoint + lineDir;
 
     int bestTrajDist = std::numeric_limits<int>::max();
@@ -30,15 +37,23 @@ std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vec
 
     int i = 0;
     while (true) {
+        newPoint.x = (newPoint.x + n) % n; // Wrap around the x-coordinate
+        newPoint.y = (newPoint.y + m) % m; // Wrap around the y-coordinate
+
+        // Check if new point is blocked by a wall
+        if (board->arr[newPoint.x][newPoint.y].has_Object()) {
+            game_object* obj = board->arr[newPoint.x][newPoint.y].get_Object();
+            if (obj->symbol == 'w') {
+                break; // Stop if we hit a wall
+            }
+        }
+
         // Calculate the distance from the point to the line
         double dist = point.chebyshevDistance(newPoint);
-        if (dist < bestTrajDist) {
+        if (dist < bestTrajDist || (dist == bestTrajDist && i + 1 < bestDist)) {
             bestTrajDist = dist;
             bestDist = i + 1;
         }
-
-        newPoint.x = (newPoint.x + n) % n; // Wrap around the x-coordinate
-        newPoint.y = (newPoint.y + m) % m; // Wrap around the y-coordinate
 
         if ((linePoint.x == newPoint.x && linePoint.y == newPoint.y) || i > max(abs(n*lineDir.x), abs(m*lineDir.y))) {
             break; // Exit the loop if we are back at the starting point

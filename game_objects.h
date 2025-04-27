@@ -6,6 +6,7 @@
 #include <string>
 #include <math.h>
 #include <algorithm>
+#include "algorithms.h"
 #include "board.h"
 
 #ifndef M_PI
@@ -21,6 +22,7 @@ struct tank;
 struct shell;
 struct mine;
 struct wall;
+struct algorithm;
 
 struct game_object {
     int x;
@@ -39,7 +41,12 @@ struct game_object {
     void set_y(int y);
     int get_x();
     int get_y();
-    virtual void print() = 0; // Pure virtual function for polymorphism
+    virtual string to_string() = 0; // Pure virtual function for polymorphism
+
+    void print() {
+        string str = to_string();
+        cout << str;
+    }
 };
 
 struct shell : public game_object {
@@ -52,7 +59,7 @@ struct shell : public game_object {
     shell(cell* curcell, int directionx, int directiony);
     void shell_move_forward(game_board& board);
     void set_shell_symbol();
-    void print();
+    string to_string();
 };
 
 struct tank : public game_object {
@@ -63,8 +70,9 @@ struct tank : public game_object {
     string cannon_symbol;
     string gear;
     cell* curcell;
+    algorithm* algo;
 
-    tank(char symbol, int directiony, int directionx, cell* curcell);
+    tank(char symbol, int directiony, int directionx, cell* curcell, algorithm* algo);
     void move_forward(game_board& board);
     void move_backwards(game_board& board);
     void rotate_4(string direction);
@@ -75,14 +83,14 @@ struct tank : public game_object {
     bool turn(game_board* board, const string& move);
     bool handle_move(game_board* board, const string& move);
     bool wall_coll_check(cell* dest);
-    void print();
+    string to_string();
 };
 
 struct mine : public game_object {
     cell* curcell;
 
     mine(char symbol, cell* curcell);
-    void print();
+    string to_string();
 };
 
 struct wall : public game_object {
@@ -90,7 +98,7 @@ struct wall : public game_object {
     cell* curcell;
 
     wall(char symbol, cell* curcell);
-    void print();
+    string to_string();
 };
 
 #endif // GAME_OBJECTS_H

@@ -74,6 +74,10 @@
         "stack": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "unordered_set": "cpp",
+        "__config": "cpp",
+        "__tree": "cpp",
+        "set": "cpp"
     }
 }

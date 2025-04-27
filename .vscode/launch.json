@@ -10,7 +10,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${workspaceFolder}/Tanks", // or your output file
-                "args": [],
+                "args": ["board1.txt"],
                 "stopAtEntry": false,
                 "cwd": "${workspaceFolder}",
                 "environment": [],

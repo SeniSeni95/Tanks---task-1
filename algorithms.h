@@ -5,10 +5,13 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <unordered_map>
+#include <ctime>
 #include <math.h>
 #include "utils.h"
 #include "board.h"
 #include "game_objects.h"
+using namespace std;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -18,13 +21,23 @@ const int DEATH = -100000;       // Constant for death score
 const int WIN = 10; // Constant for win score (not as high as death because it isn't guaranteed)
 
 const int SHELL_DANGER_RADIUS = 2; // Shell danger radius (distance from the trajectory line)
-const int SHELL_DANGER_DISTANCE = 7; // Shell danger distance
+const int SHELL_DANGER_DISTANCE = 4; // Shell danger distance
 const int MINE_DANGER_RADIUS = 2;  // Mine danger radius
+
+// Forward declarations
+struct game_board;
+struct tank;
+struct shell;
+struct mine;
+struct wall;
+struct cell;
+struct Vector2D;
 
 struct algorithm {
 protected:
     std::vector<wall*> walls;
     std::vector<mine*> mines;
+    unordered_map<std::string, time_t> board_states;
 
 public:
     algorithm();
@@ -46,7 +59,7 @@ public:
     virtual double score_skip(game_board* board, tank* self, int lookahead);
     tank* get_self_in_board_copy(game_board* board_copy, tank* self);
     void fetch_walls_and_mines(game_board* board);
-    std::pair<std::string, double> decide_move(game_board* board, tank* self, int lookahead);
+    std::pair<std::string, double> decide_move(game_board* board, tank* self, int lookahead, bool first_call = true);
 };
 
 struct shell_avoidance_algorithm : public algorithm {

@@ -60,7 +60,7 @@ void shell::shell_move_forward(game_board& board) {
     if (just_created) {
         // Skip first move because we spawned the shell in the next cell already
         just_created = false;
-        return;
+        // return;
     }
 
     curcell->remove_Object(this);
@@ -73,16 +73,12 @@ void shell::shell_move_forward(game_board& board) {
 
     if (curcell->objects.size() > 1 &&
         find(board.collisions.begin(), board.collisions.end(), curcell) == board.collisions.end()) {
-        bool has_mine = false;
+
         for (game_object* obj : curcell->objects) {
-            if (obj->symbol == 'm') {
-                has_mine = true;
+            if (obj->symbol == 'w' || obj->symbol == '1' || obj->symbol == '2' || (dynamic_cast<shell*>(obj) && obj != this)) {
+                board.collisions.push_back(curcell);
                 break;
             }
-        }
-
-        if (!has_mine) {
-            board.collisions.push_back(curcell);
         }
     }
 }
@@ -103,12 +99,13 @@ void shell::set_shell_symbol() {
     else if (fabs(degree - 315) < TOLERANCE) shell_symbol = "↘";
 }
 
-void shell::print() {
-    cout << "[ " << shell_symbol << "]";
+string shell::to_string() {
+    return "[ " + shell_symbol + "]";
 }
 
-tank::tank(char symbol, int directionx, int directiony, cell* curcell) {
+tank::tank(char symbol, int directionx, int directiony, cell* curcell, algorithm* algo) {
     this->curcell = curcell;
+    this->algo = algo;
     curcell->add_Object(this);
     this->x = curcell->get_X();
     this->y = curcell->get_Y();
@@ -171,7 +168,7 @@ void tank::shoot(game_board* board) {
         shot_timer = 4;
         int new_x = (x + directionx + board->n) % board->n;
         int new_y = (y + directiony + board->m) % board->m;
-        cell* curcell = &board->arr[new_x][new_y];
+        cell* curcell = &board->arr[x][y];
         shell* s = new shell(curcell, directionx, directiony);
         board->add_shell(s);
     }
@@ -283,8 +280,8 @@ string tank::get_cannon_symbol() {
     return cannon_symbol;
 }
 
-void tank::print() {
-    cout << "[" << symbol << cannon_symbol << "]";
+string tank::to_string() {
+    return "[" + (symbol + cannon_symbol) + "]";
 }
 
 mine::mine(char symbol, cell* curcell) {
@@ -295,8 +292,8 @@ mine::mine(char symbol, cell* curcell) {
     curcell->add_Object(this);
 }
 
-void mine::print() {
-    cout << "[ " << symbol << "]";
+string mine::to_string() {
+    return "[ " + std::string(1, symbol) + "]";
 }
 
 wall::wall(char symbol, cell* curcell) {
@@ -308,6 +305,6 @@ wall::wall(char symbol, cell* curcell) {
     this->hp = 2;
 }
 
-void wall::print() {
-    cout << "[ " << symbol << "]";
+string wall::to_string() {
+    return "[ " + std::string(1, symbol) + "]";
 }
