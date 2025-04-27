@@ -72,7 +72,7 @@ void game_board::remove_tank(tank* t) {
 }
 
 void game_board::add_shell(shell* s) {
-    shells.push_back(s); // Add a shell to the shells vector
+    shells.insert(shells.begin(), s); // Add a shell to the shells vector
 }
 
 void game_board::remove_shell(shell* s) {
@@ -162,11 +162,12 @@ void game_board::process_shells() {
         }
 
         if (shell_count >= 2) {
-            for (auto it = s->curcell->objects.begin(); it != s->curcell->objects.end();) {
+            cell* c = s->curcell;
+            for (auto it = c->objects.begin(); it != c->objects.end();) {
                 game_object* obj = *it;
                 if (shell* other = dynamic_cast<shell*>(obj)) {
                     remove_shell(other);
-                    it = s->curcell->objects.erase(it);
+                    it = c->objects.erase(it);
                     delete other;
                 } else {
                     ++it;

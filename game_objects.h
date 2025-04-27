@@ -29,6 +29,10 @@ struct game_object {
 
     game_object(int x, int y, char symbol);
     game_object();
+
+    // Destructor
+    virtual ~game_object() = default;
+
     char get_symbol();
     void set_symbol(char s);
     void set_x(int x);
@@ -43,6 +47,7 @@ struct shell : public game_object {
     int directiony;
     cell* curcell;
     string shell_symbol;
+    bool just_created;
 
     shell(cell* curcell, int directionx, int directiony);
     void shell_move_forward(game_board& board);

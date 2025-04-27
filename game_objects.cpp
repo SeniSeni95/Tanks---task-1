@@ -52,10 +52,17 @@ shell::shell(cell* curcell, int directionx, int directiony) {
     this->directionx = directionx;
     this->directiony = directiony;
     this->set_shell_symbol();
+    this->just_created = true;
     curcell->add_Object(this);
 }
 
 void shell::shell_move_forward(game_board& board) {
+    if (just_created) {
+        // Skip first move because we spawned the shell in the next cell already
+        just_created = false;
+        return;
+    }
+
     curcell->remove_Object(this);
 
     x = (x + directionx + board.n) % board.n;
@@ -126,11 +133,16 @@ void tank::move_forward(game_board& board) {
 }
 
 void tank::move_backwards(game_board& board) {
-    curcell->remove_Object(this);
-    x = (x - directionx + board.n) % board.n;
-    y = (y - directiony + board.m) % board.m;
-    curcell = &board.arr[x][y];
-    curcell->add_Object(this);
+    int new_x = (x - directionx + board.n) % board.n;
+    int new_y = (y - directiony + board.m) % board.m;
+    cell* newcell = &board.arr[new_x][new_y];
+
+    // Check for wall collision
+    if (newcell->has_Object() && newcell->get_Object()->symbol != 'w') {
+        curcell->remove_Object(this);
+        newcell->add_Object(this);
+        curcell = newcell;
+    }
 
     if (curcell->objects.size() > 1 &&
         find(board.collisions.begin(), board.collisions.end(), curcell) == board.collisions.end()) {
@@ -156,6 +168,9 @@ void tank::shoot(game_board* board) {
     if (shells > 0) {
         shells--;
         shot_timer = 4;
+        int new_x = (x + directionx + board->n) % board->n;
+        int new_y = (y + directiony + board->m) % board->m;
+        cell* curcell = &board->arr[new_x][new_y];
         shell* s = new shell(curcell, directionx, directiony);
         board->add_shell(s);
     }

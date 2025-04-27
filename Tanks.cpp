@@ -23,7 +23,7 @@ struct cell;
 struct game_master;
 
 // Constants
-const int LOOKAHEAD_DEPTH = 5; // Lookahead depth for the algorithms
+const int LOOKAHEAD_DEPTH = 2; // Lookahead depth for the algorithms
 
 struct game_master{
     game_board* board;
@@ -74,10 +74,24 @@ struct game_master{
                 }
             }
 
-            game_over = board->do_step();
-            bool t1 = turn('1'); // Call the turn function with player '1'
-            bool t2 = turn('2'); // Call the turn function with player '2'
+            string move1 = ask_algorithm('1'); // Get the move for player 1
+            string move2 = ask_algorithm('2'); // Get the move for player 2
+
+            bool t1 = turn('1', move1); // Call the turn function with player '1'
+            bool t2 = turn('2', move2); // Call the turn function with player '2'
+            game_over = board->handle_cell_collisions(); // Handle cell collisions
+
+            if (game_over) {
+                break; // Exit the loop if game is over
+            }
+
+            game_over = board->do_step(); // Perform half step again
             board->print_board();
+
+            if (game_over) {
+                break; // Exit the loop if game is over
+            }
+
             sleep(1);
         }
         cout << "Game over!" << endl; // Print game over message
@@ -102,12 +116,10 @@ struct game_master{
     }
     
     
-    bool turn(char player) {
-        cout << "Player " << player << "'s turn!" << endl;
-    
+    bool turn(char player, string move) {    
         for (tank* t : board->tanks) {
             if (t->symbol == player) {
-                t->turn(board, ask_algorithm(player));
+                t->turn(board, move);
                 break;
             }
         }
@@ -139,12 +151,14 @@ struct game_master{
                 return result.first; // Return the move
             }
         }
+
+        return "skip";
     }
 };
 
 
 int main() {
-    int n = 5, m = 8; // Dimensions of the game board
+    int n = 10, m = 10; // Dimensions of the game board
 
     // Create a 2D vector of cells to represent the game board
     vector<vector<cell>> board_cells(n, vector<cell>(m));
@@ -159,25 +173,31 @@ int main() {
     game_board board(n, m, board_cells);
 
     // Create and place Tank 1
-    int a = 2, b = 1;
+    int a = 4, b = 2;
     tank* tank1 = new tank('1', 0, 1, &board.arr[a][b]);
     board.add_tank(tank1);
 
     // Create and place Tank 2
-    int c = 2, d = 5;
-    tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]); 
+    int c = 5, d = 8;
+    tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]);
     board.add_tank(tank2);
 
     // Add walls to the board
     wall* wall1 = new wall('w', &board.arr[1][1]); // Wall at (1, 1)
-    wall* wall2 = new wall('w', &board.arr[3][5]); // Wall at (3, 5)
+    wall* wall2 = new wall('w', &board.arr[2][1]); // Wall at (1, 1)
+    wall* wall3 = new wall('w', &board.arr[3][5]); // Wall at (3, 5)
+    wall* wall4 = new wall('w', &board.arr[4][5]); // Wall at (3, 5)
+
+    wall* wall5 = new wall('w', &board.arr[8][7]); // Wall at (3, 5)
+    wall* wall6 = new wall('w', &board.arr[8][6]); // Wall at (3, 5)
+    wall* wall7 = new wall('w', &board.arr[8][5]); // Wall at (3, 5)
 
     // Add mines to the board
     mine* mine1 = new mine('m', &board.arr[0][4]); // Mine at (0, 4)
-    mine* mine2 = new mine('m', &board.arr[4][2]); // Mine at (4, 2)
+    mine* mine2 = new mine('m', &board.arr[4][3]); // Mine at (4, 2)
 
     // Initialize algorithms
-    algorithm* algo1 = new shell_avoidance_algorithm();
+    algorithm* algo1 = new running_algorithm();
     algorithm* algo2 = new chasing_algorithm();
 
     // Initialize the game master
@@ -190,12 +210,8 @@ int main() {
     // Clean up dynamically allocated memory
     delete algo1;
     delete algo2;
-    delete tank1;
-    delete tank2;
-    delete wall1;
-    delete wall2;
-    delete mine1;
-    delete mine2;
+    
+    board.destroy_all_objects(); // Destroy all objects on the board
 
     return 0;
 }

@@ -6,7 +6,7 @@ Vector2D Vector2D::operator+(const Vector2D& other) const {
 }
 
 Vector2D Vector2D::operator*(double scalar) const {
-    return {x * scalar, y * scalar};
+    return {(int) round((double)x * scalar), (int) round((double)y * scalar)};
 }
 
 Vector2D Vector2D::operator-(const Vector2D& other) const {
@@ -14,34 +14,39 @@ Vector2D Vector2D::operator-(const Vector2D& other) const {
 }
 
 // Chebyshev (L∞) norm
-double Vector2D::chebyshevDistance(const Vector2D& other) const {
+int Vector2D::chebyshevDistance(const Vector2D& other) const {
     return std::max(std::abs(x - other.x), std::abs(y - other.y));
 }
 
 // Finds the closest Chebyshev distance between a point and a parametric line
-double chebyshevDistanceToLine(Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, int n, int m) {
-    if (point.chebyshevDistance(linePoint) < (point + lineDir).chebyshevDistance(linePoint)) {
-        return -1; // The point is "behind" the line
-    }
+std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, int n, int m) {
+    Vector2D newPoint = linePoint + lineDir;
 
-    double bestDist = std::numeric_limits<double>::max();
+    int bestTrajDist = std::numeric_limits<int>::max();
+    int bestDist = std::numeric_limits<int>::max();
+
+    int i = 0;
     while (true) {
         // Calculate the distance from the point to the line
-        double dist = point.chebyshevDistance(linePoint);
-        if (dist < bestDist) {
-            bestDist = dist;
+        double dist = point.chebyshevDistance(newPoint);
+        if (dist < bestTrajDist) {
+            bestTrajDist = dist;
+            bestDist = i + 1;
+        }
+
+        newPoint.x = (newPoint.x + n) % n; // Wrap around the x-coordinate
+        newPoint.y = (newPoint.y + m) % m; // Wrap around the y-coordinate
+
+        if ((linePoint.x == newPoint.x && linePoint.y == newPoint.y) || i > max(abs(n*lineDir.x), abs(m*lineDir.y))) {
+            break; // Exit the loop if we are back at the starting point
         }
 
         // Move along the line
-        linePoint = linePoint + lineDir;
-
-        // Check if the new point is out of bounds
-        if (linePoint.x < 0 || linePoint.x >= n || linePoint.y < 0 || linePoint.y >= m) {
-            break; // Exit the loop if out of bounds
-        }
+        newPoint = newPoint + lineDir;
+        i++;
     }
 
-    return bestDist; // Return the closest distance found
+    return {bestTrajDist, bestDist}; // Return the best distance and trajectory distance
 }
 
 std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction) {

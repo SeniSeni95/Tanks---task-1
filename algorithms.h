@@ -14,9 +14,12 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-const int OUT_OF_BOUNDS = -10000; // Constant for out of bounds score
 const int DEATH = -100000;       // Constant for death score
-const int WIN = 20; // Constant for win score (not as high as death as it isn't guaranteed)
+const int WIN = 10; // Constant for win score (not as high as death because it isn't guaranteed)
+
+const int SHELL_DANGER_RADIUS = 2; // Shell danger radius (distance from the trajectory line)
+const int SHELL_DANGER_DISTANCE = 7; // Shell danger distance
+const int MINE_DANGER_RADIUS = 2;  // Mine danger radius
 
 struct algorithm {
 protected:
@@ -25,9 +28,12 @@ protected:
 
 public:
     algorithm();
+
+    virtual ~algorithm() = default;
+
     virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) = 0;
 
-    void move_other_tanks(game_board* board, tank* self);
+    void other_tanks_turn(game_board* board, tank* self);
     void do_move(game_board* board, tank* self, const std::string& move);
     double score_single_move(game_board* board, tank* self, const std::string& move, int lookahead);
     virtual double score_forward_move(game_board* board, tank* self, int lookahead);
@@ -46,6 +52,7 @@ public:
 struct shell_avoidance_algorithm : public algorithm {
 protected:
     int shell_danger_radius;
+    int shell_danger_distance;
     int mine_danger_radius;
 
 public:
@@ -54,15 +61,18 @@ public:
     virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) override;
 };
 
-double find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
+int find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
 
 struct chasing_algorithm : public shell_avoidance_algorithm {
-protected:
-    int shell_danger_radius;
-    int mine_danger_radius;
-
 public:
     chasing_algorithm();
+    virtual double score_position(game_board* board_copy, tank* self_copy) override;
+    virtual double score_shoot(game_board* board, tank* self, int lookahead) override;
+};
+
+struct running_algorithm : public shell_avoidance_algorithm {
+public:
+    running_algorithm();
     virtual double score_position(game_board* board_copy, tank* self_copy) override;
 };
 
