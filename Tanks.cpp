@@ -34,13 +34,15 @@ struct game_master
     bool game_over;
     bool out_of_shells;
     int time_out_steps;
+    string input_filename;
 
-    game_master(game_board *board)
+    game_master(game_board *board, string input_filename)
     {
         this->board = board;     // Initialize the game board
         this->game_over = false; // Set game_over to false initially
         this->time_out_steps = 40;
         this->out_of_shells = false;
+        this->input_filename = input_filename; // Set the input filename
     }
     void start_game()
     {
@@ -53,8 +55,9 @@ struct game_master
 
     void game()
     {
+        string output_filename = "output_" + input_filename.substr(0, input_filename.find('.')) + ".txt";
         // Create the output file to log the game moves
-        std::ofstream game_output("game_moves.txt");
+        std::ofstream game_output(output_filename);
 
         // Check if the file was opened successfully
         if (!game_output.is_open())
@@ -117,7 +120,7 @@ struct game_master
                 break; // Exit the loop if game is over
             }
 
-            sleep(1);
+            // sleep(1);
         }
 
         cout << "Game over!" << endl; // Print game over message
@@ -416,7 +419,7 @@ int main(int argc, char *argv[])
     // mine* mine2 = new mine('m', &board.arr[4][3]); // Mine at (4, 2)
 
     // Initialize the game master
-    game_master master(&board);
+    game_master master(&board, input_filename);
 
     // Start the game
     master.start_game();

@@ -1,0 +1,7 @@
+Player 1 Move: r4l
+Player 2 Move: r4l
+Player 1 Move: r8l
+Player 2 Move: r8l
+Player 1 Move: shoot
+Player 2 Move: fw
+Player 1 wins!
