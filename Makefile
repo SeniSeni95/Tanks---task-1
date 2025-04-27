@@ -1,5 +1,5 @@
 # Name of the executable
-TARGET = Tanks
+TARGET = tanks_game
 
 # All the source files
 SRCS = tanks.cpp board.cpp game_objects.cpp algorithms.cpp utils.cpp
