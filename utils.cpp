@@ -1,5 +1,8 @@
 #include "utils.h"
 using namespace std;
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 Vector2D Vector2D::operator+(const Vector2D& other) const {
     return {x + other.x, y + other.y};

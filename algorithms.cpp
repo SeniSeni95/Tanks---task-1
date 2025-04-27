@@ -1,4 +1,5 @@
 #include "algorithms.h"
+#include <queue>
 
 algorithm::algorithm() {}
 

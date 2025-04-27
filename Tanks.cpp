@@ -174,12 +174,12 @@ int main() {
 
     // Create and place Tank 1
     int a = 4, b = 2;
-    tank* tank1 = new tank('1', 0, 1, &board.arr[a][b]);
+    tank* tank1 = new tank('1', 0, -1, &board.arr[a][b]);
     board.add_tank(tank1);
 
     // Create and place Tank 2
     int c = 5, d = 8;
-    tank* tank2 = new tank('2', 0, -1, &board.arr[c][d]);
+    tank* tank2 = new tank('2', 0, 1, &board.arr[c][d]);
     board.add_tank(tank2);
 
     // Add walls to the board
