@@ -8,7 +8,7 @@ SRCS = tanks.cpp board.cpp game_objects.cpp algorithms.cpp utils.cpp
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -Wall -Wextra -std=c++17 -Wno-unused-variable
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic
 
 # How to build the program
 $(TARGET): $(SRCS)

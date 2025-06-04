@@ -103,8 +103,8 @@ struct game_master
             game_output << "Player 1 Move: " << move1 << std::endl;
             game_output << "Player 2 Move: " << move2 << std::endl;
 
-            bool t1 = turn('1', move1);                  // Call the turn function with player '1'
-            bool t2 = turn('2', move2);                  // Call the turn function with player '2'
+            turn('1', move1);                  // Call the turn function with player '1'
+            turn('2', move2);                  // Call the turn function with player '2'
             game_over = board->handle_cell_collisions(); // Handle cell collisions
 
             if (game_over)
@@ -149,7 +149,7 @@ struct game_master
         game_output.close();
     }
 
-    bool turn(char player, string move)
+    void turn(char player, string move)
     {
         for (tank *t : board->tanks)
         {
@@ -159,7 +159,6 @@ struct game_master
                 break;
             }
         }
-        return false; // Return false if no valid tank was found
     }
 
     string ask_algorithm(char player)
@@ -310,7 +309,6 @@ int main(int argc, char *argv[])
         }
     }
     // Check if trimming cut off '1' or '2'
-    bool fatalError = false;
     count_1 = 0, count_2 = 0;
     for (int i = 0; i < n; ++i)
     {
@@ -385,12 +383,12 @@ int main(int argc, char *argv[])
             else if (cell == '#')
             {
                 // Place Wall
-                wall *new_wall = new wall('w', &board.arr[i][j]);
+               new wall('w', &board.arr[i][j]);
             }
             else if (cell == '@')
             {
                 // Place Mine
-                mine *new_mine = new mine('m', &board.arr[i][j]);
+                new mine('m', &board.arr[i][j]);
             }
         }
     }

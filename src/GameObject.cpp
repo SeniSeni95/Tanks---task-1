@@ -1,5 +1,6 @@
-#include "game_objects.h"
-#include "board.h"
+#include "GameObject.h"
+#include "TankAlgorithm.h"
+#include "Board.h"
 #include "utils.h"
 #include <math.h>
 #include <algorithm>
@@ -103,7 +104,7 @@ string shell::to_string() {
     return "[ " + shell_symbol + "]";
 }
 
-tank::tank(char symbol, int directionx, int directiony, cell* curcell, algorithm* algo) {
+tank::tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgorithm* algo) {
     this->curcell = curcell;
     this->algo = algo;
     curcell->add_Object(this);

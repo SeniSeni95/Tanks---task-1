@@ -346,7 +346,6 @@ double chasing_algorithm::score_shoot(game_board* board, tank* self, int lookahe
     for (tank* t : board->tanks) {
         if (t->symbol != self->symbol) {
             // Check if the enemy tank is in the line of fire
-            Vector2D tank_pos = {self->x, self->y};
             Vector2D enemy_tank_pos = {t->x, t->y};
             Vector2D shell_pos = {self->x + self->directionx, self->y + self->directiony};
             Vector2D shell_dir = {self->directionx, self->directiony};

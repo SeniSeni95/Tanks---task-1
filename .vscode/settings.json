@@ -78,6 +78,10 @@
         "unordered_set": "cpp",
         "__config": "cpp",
         "__tree": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "xhash": "cpp",
+        "xtree": "cpp"
     }
 }
