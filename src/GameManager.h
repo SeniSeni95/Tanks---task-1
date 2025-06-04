@@ -7,13 +7,18 @@
 #include "Board.h"
 #include "PlayerFactory.h"
 #include "TankAlgorithmFactory.h"
+#include "SatelliteView.h"
+#include "SatelliteViewImpl.h"
 
 class GameManager {
 public:
     GameManager(const PlayerFactory& playerFactory, const TankAlgorithmFactory& tankFactory);
 
     bool readBoard(const std::string& filename);
-    void run(); // main game loop
+    void run(const std::string& input_filename);// main game loop
+    std::string actionToString(ActionRequest action);
+    std::string askAlgorithm(tank* t);
+
 
 private:
     struct TankState {
@@ -27,8 +32,10 @@ private:
     };
 
     std::unique_ptr<game_board> board;
-    const PlayerFactory& playerFactory;
-    const TankAlgorithmFactory& tankFactory;
+    std::unique_ptr<SatelliteView> satview;
+    std::vector<std::unique_ptr<TankAlgorithm>> algorithms;
+    std::unique_ptr<PlayerFactory> playerFactory;
+    std::unique_ptr<TankAlgorithmFactory> tankAlgorithmFactory;
     size_t maxSteps = 0;
     size_t numShells = 0;
     std::string inputFilename;
@@ -36,6 +43,10 @@ private:
     std::vector<std::shared_ptr<Player>> players;
     std::vector<std::shared_ptr<TankAlgorithm>> tankAlgorithms;
     std::vector<TankState> tankStates;
+    SatelliteViewImpl satelliteViewImpl;
+    bool satelliteCopyReady = false;
+    
+    
 
     size_t stepCounter = 0;
     size_t outOfShellSteps = 0;

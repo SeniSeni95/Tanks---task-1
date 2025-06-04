@@ -120,7 +120,7 @@ string game_board::get_board_state() {
     return state;
 }
 
-game_board* game_board::deep_copy() {
+game_board* game_board::deep_copy() const {
     game_board* new_board = new game_board(n, m, arr);
 
     for (int i = 0; i < n; ++i) {

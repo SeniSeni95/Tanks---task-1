@@ -6,7 +6,7 @@
 #include <limits>
 #include <string>
 #include "board.h"
-#include "game_objects.h"
+#include "GameObject.h"
 
 // Forward declarations
 struct game_board;

@@ -1,3 +1,7 @@
+#pragma once
+#include "SatelliteView.h"
+
+
 class Player {
 public:
 	Player( int player_index,

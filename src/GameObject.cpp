@@ -3,7 +3,6 @@
 #include "Board.h"
 #include "utils.h"
 #include <math.h>
-#include <algorithm>
 using namespace std;
 
 #ifndef M_PI
@@ -117,6 +116,7 @@ tank::tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgor
     this->shells = 16;
     this->shot_timer = 0;
     this->gear = "forward";
+    this->alive = true;
 }
 
 void tank::move_forward(game_board& board) {

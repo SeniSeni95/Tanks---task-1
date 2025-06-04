@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include "game_objects.h"
+#include "GameObject.h"
 using namespace std;
 
 #ifndef M_PI
@@ -26,6 +26,7 @@ struct cell {
     cell(int x, int y, game_object* obj);
     cell();
 
+
     void set_X(int x);
     void set_Y(int y);
     int get_X();
@@ -45,14 +46,13 @@ struct game_board {
     std::vector<std::vector<cell>> arr; // 2D array to represent the game board
     std::vector<cell*> collisions;
 
-    game_board(int n, int m);
-
+    game_board(int n, int m, std::vector<std::vector<cell>> arr);
     void add_tank(tank* t);
     void remove_tank(tank* t);
     void add_shell(shell* s);
     void remove_shell(shell* s);
     void print_board();
-    game_board* deep_copy();
+    game_board* deep_copy() const;
     string get_board_state();
 
     bool do_half_step();

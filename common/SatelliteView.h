@@ -1,3 +1,7 @@
+
+#pragma once
+#include <cstddef>  // for size_t
+
 class SatelliteView {
 public:
 	virtual ~SatelliteView() {}
