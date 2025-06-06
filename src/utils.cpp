@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <sstream>
 using namespace std;
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -43,7 +44,7 @@ std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vec
         // Check if new point is blocked by a wall
         if (board->arr[newPoint.x][newPoint.y].has_Object()) {
             game_object* obj = board->arr[newPoint.x][newPoint.y].get_Object();
-            if (obj->symbol == 'w') {
+            if (obj->get_symbol() == 'w') {
                 break; // Stop if we hit a wall
             }
         }
@@ -111,4 +112,13 @@ std::pair<int, int> rotate_8(int directionx, int directiony, std::string directi
     directiony = round(sin(radian));
 
     return {directionx, directiony}; // Return the new direction
+}
+
+std::string join(const std::vector<std::string>& vec, const std::string& delim) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (i > 0) oss << delim;
+        oss << vec[i];
+    }
+    return oss.str();
 }

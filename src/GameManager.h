@@ -13,12 +13,10 @@
 class GameManager {
 public:
     GameManager(std::unique_ptr<PlayerFactory> playerFactory, std::unique_ptr<TankAlgorithmFactory> tankFactory);
-
     void readBoard(const std::string& filename);
-    void run();// main game loop
+    void run(); // main game loop
     std::string actionToString(ActionRequest action);
     std::string askAlgorithm(tank* t);
-
 
 private:
     struct TankState {
@@ -32,21 +30,20 @@ private:
     };
 
     std::unique_ptr<game_board> board;
-    std::unique_ptr<SatelliteView> satview;
-    std::vector<std::unique_ptr<TankAlgorithm>> algorithms;
+    std::unique_ptr<SatelliteView> satview; // points to satelliteViewImpl
+    SatelliteViewImpl satelliteViewImpl;
+    bool satelliteCopyReady = false;
+
     std::unique_ptr<PlayerFactory> playerFactory;
     std::unique_ptr<TankAlgorithmFactory> tankAlgorithmFactory;
-    size_t maxSteps = 0;
-    size_t numShells = 0;
-     std::string input_filename;
 
     std::vector<std::shared_ptr<Player>> players;
     std::vector<std::shared_ptr<TankAlgorithm>> tankAlgorithms;
     std::vector<TankState> tankStates;
-    SatelliteViewImpl satelliteViewImpl;
-    bool satelliteCopyReady = false;
-    
-    
+
+    size_t maxSteps = 0;
+    size_t numShells = 0;
+    std::string input_filename;
 
     size_t stepCounter = 0;
     size_t outOfShellSteps = 0;
@@ -54,7 +51,7 @@ private:
 
     bool allTanksOutOfShells() const;
     void applyActions(const std::vector<ActionRequest>& actions, std::ostream& output);
-    void updateAliveStatus(); // for marking killed tanks
+    void updateAliveStatus();
     void logRound(const std::vector<ActionRequest>& actions, std::ostream& output);
     void printGameResult(std::ostream& output);
 };

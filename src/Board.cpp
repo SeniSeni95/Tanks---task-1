@@ -57,10 +57,15 @@ void game_board::add_tank(std::shared_ptr<tank> t) {
 }
 
 void game_board::remove_tank(game_object* t) {
+    if (tank* tk = dynamic_cast<tank*>(t)) {
+        tk->alive = false; // ✅ Safety in case called directly
+    }
+
     tanks.erase(std::remove_if(tanks.begin(), tanks.end(),
         [t](const std::shared_ptr<tank>& ptr) { return ptr.get() == t; }),
         tanks.end());
 }
+
 
 void game_board::add_shell(std::shared_ptr<shell> s) {
     shells.insert(shells.begin(), std::move(s));
@@ -73,8 +78,8 @@ void game_board::remove_shell(game_object* s) {
 }
 
 void game_board::print_board() {
-    std::cout << "[DEBUG] Entered game_board::print_board()" << std::endl;
-    std::cout << "[DEBUG] Board dimensions: n = " << n << ", m = " << m << std::endl;
+    // std::cout << "[DEBUG] Entered game_board::print_board()" << std::endl;
+    // std::cout << "[DEBUG] Board dimensions: n = " << n << ", m = " << m << std::endl;
     try {
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < m; ++j) {
@@ -89,6 +94,14 @@ void game_board::print_board() {
     }
 }
 
+
+std::shared_ptr<shell> game_board::get_shared_shell(shell* s) {
+    for (auto& sp : shells) {
+        if (sp.get() == s) return sp;
+    }
+    throw std::runtime_error("Shell not found in board->shells");
+}
+
 std::string game_board::get_board_state() {
     std::string state;
     for (int i = 0; i < n; ++i) {
@@ -96,7 +109,7 @@ std::string game_board::get_board_state() {
             if (arr[i][j].has_Object()) {
                 game_object* obj = arr[i][j].get_Object();
                 state += obj->get_symbol();
-                if (obj->symbol == 'w') {
+                if (obj->get_symbol() == 'w') {
                     wall* w = dynamic_cast<wall*>(obj);
                     state += std::to_string(w->hp);
                 }
@@ -177,19 +190,26 @@ void game_board::process_shells() {
     std::vector<std::shared_ptr<shell>> shells_to_process = shells;
 
     for (auto& s : shells_to_process) {
-        if (std::find(shells.begin(), shells.end(), s) == shells.end()) continue;
-        s->shell_move_forward(*this);
+        // Skip if this shell was already removed
+        if (std::find(shells.begin(), shells.end(), s) == shells.end())
+            continue;
 
+        s->shell_move_forward(*this);
+        cell* c = s->curcell;
+
+        // Check for direct shell-shell overlap
         int shell_count = 0;
-        for (const auto& obj : s->curcell->objects) {
-            if (dynamic_cast<shell*>(obj.get())) shell_count++;
+        for (const auto& obj : c->objects) {
+            if (dynamic_cast<shell*>(obj.get())) {
+                shell_count++;
+            }
         }
 
+        // If multiple shells collide, remove them immediately
         if (shell_count >= 2) {
-            cell* c = s->curcell;
             for (auto it = c->objects.begin(); it != c->objects.end();) {
-                if (shell* other = dynamic_cast<shell*>((*it).get())) {
-                    remove_shell(other);
+                if (shell* sh = dynamic_cast<shell*>((*it).get())) {
+                    remove_shell(sh);
                     it = c->objects.erase(it);
                 } else {
                     ++it;
@@ -198,71 +218,113 @@ void game_board::process_shells() {
             continue;
         }
 
-        if (s->curcell->has_Object()) {
-            game_object* obj = s->curcell->get_Object();
-            if (obj->symbol == 'w') {
-                if (wall* w = dynamic_cast<wall*>(obj)) {
-                    w->hp--;
-                    if (w->hp <= 0) {
-                        s->curcell->remove_Object(w);
-                    }
-                    s->curcell->remove_Object(s.get());
-                    remove_shell(s.get());
+        // Check for wall collision
+        for (const auto& obj : c->objects) {
+            if (obj.get() == s.get()) continue;
+            if (wall* w = dynamic_cast<wall*>(obj.get())) {
+                w->hp--;
+                if (w->hp <= 0) {
+                    c->remove_Object(w);
                 }
+                c->remove_Object(s.get());
+                remove_shell(s.get());
+                goto continue_loop;
             }
         }
+
+        // Check for tank or other collision — defer to collision handler
+        for (const auto& obj : c->objects) {
+            if (obj.get() == s.get()) continue;
+            if (dynamic_cast<tank*>(obj.get()) || dynamic_cast<mine*>(obj.get())) {
+                if (std::find(collisions.begin(), collisions.end(), c) == collisions.end()) {
+                    collisions.push_back(c);
+                }
+                break;
+            }
+        }
+
+    continue_loop:
+        continue;
     }
 }
 
+
+
 bool game_board::handle_cell_collisions() {
-    bool game_over = false;
+    // std::cout << "[DEBUG] Entering handle_cell_collisions..." << std::endl;
 
     for (cell* c : collisions) {
-        if (c->objects.size() >= 2) {
-            game_object* first_obj = c->objects[0].get();
+        std::vector<game_object*> tanks_to_remove;
+        std::vector<game_object*> shells_to_remove;
+        std::vector<game_object*> mines_to_remove;
 
-            if (mine* m = dynamic_cast<mine*>(first_obj)) {
-                for (auto it = c->objects.begin(); it != c->objects.end();) {
-                    if (tank* t = dynamic_cast<tank*>((*it).get())) {
-                        remove_tank(t);
-                        c->remove_Object(t);
-                        it = c->objects.begin();
-                    } else {
-                        ++it;
-                    }
-                }
-                c->remove_Object(m);
-                game_over = true;
-            } else if (shell* s = dynamic_cast<shell*>(first_obj)) {
-                for (auto it = c->objects.begin(); it != c->objects.end();) {
-                    if (tank* t = dynamic_cast<tank*>((*it).get())) {
-                        remove_tank(t);
-                        c->remove_Object(t);
-                        it = c->objects.begin();
-                    } else {
-                        ++it;
-                    }
-                }
-                c->remove_Object(s);
-                remove_shell(s);
-                game_over = true;
-            } else if (dynamic_cast<tank*>(first_obj)) {
-                for (auto it = c->objects.begin(); it != c->objects.end();) {
-                    if (dynamic_cast<shell*>((*it).get()) || dynamic_cast<mine*>((*it).get())) {
-                        ++it;
-                    } else {
-                        if (tank* tt = dynamic_cast<tank*>((*it).get())) {
-                            remove_tank(tt);
-                        }
-                        c->remove_Object((*it).get());
-                        it = c->objects.begin();
-                    }
-                }
-                game_over = true;
+        for (const auto& ptr : c->objects) {
+            game_object* obj = ptr.get();
+            if (dynamic_cast<tank*>(obj)) {
+                tanks_to_remove.push_back(obj);
+            } else if (dynamic_cast<shell*>(obj)) {
+                shells_to_remove.push_back(obj);
+            } else if (dynamic_cast<mine*>(obj)) {
+                mines_to_remove.push_back(obj);
             }
+        }
+
+        // Remove all tanks hit by shell or mine
+        if ((!shells_to_remove.empty() && !tanks_to_remove.empty()) ||
+            (!mines_to_remove.empty() && !tanks_to_remove.empty())) {
+            // std::cout << "[DEBUG] Tank(s) killed in collision at cell!" << std::endl;
+            for (game_object* t : tanks_to_remove) {
+                if (tank* tk = dynamic_cast<tank*>(t)) {
+                    // std::cout << "[DEBUG] Marking tank " << tk->symbol << " as dead." << std::endl;
+                    tk->alive = false;
+                    remove_tank(tk);
+                    c->remove_Object(tk);
+                }
+            }
+        }
+
+        for (game_object* m : mines_to_remove) {
+            // std::cout << "[DEBUG] Removing mine." << std::endl;
+            c->remove_Object(m);
+        }
+
+        for (game_object* s : shells_to_remove) {
+            // std::cout << "[DEBUG] Removing shell." << std::endl;
+            remove_shell(s);
+            c->remove_Object(s);
         }
     }
 
     collisions.clear();
-    return game_over;
+
+    // Count living tanks per player
+    bool p1_alive = false;
+    bool p2_alive = false;
+
+    // std::cout << "[DEBUG] Tanks after collision handling:" << std::endl;
+    for (const auto& t : tanks) {
+        // std::cout << "  Tank " << t->symbol << " alive=" << t->alive << std::endl;
+
+        if (!t->alive) continue;
+
+        if (t->symbol == '1') p1_alive = true;
+        if (t->symbol == '2') p2_alive = true;
+    }
+
+    bool result = !(p1_alive && p2_alive);
+    // std::cout << "[DEBUG] handle_cell_collisions returning " << std::boolalpha << result << std::endl;
+    return result;
 }
+
+
+
+int game_board::countAliveTanksForPlayer(char symbol) const {
+    int count = 0;
+    for (const auto& t_ptr : tanks) {
+        if (t_ptr->alive && t_ptr->symbol == symbol) {
+            ++count;
+        }
+    }
+    return count;
+}
+

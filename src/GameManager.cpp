@@ -13,6 +13,9 @@
 #include <set>
 #include <map>
 #include <filesystem>
+#include <unordered_set>
+#include "utils.h"
+
 
 GameManager::GameManager(std::unique_ptr<PlayerFactory> playerFactory,
                          std::unique_ptr<TankAlgorithmFactory> tankFactory)
@@ -121,7 +124,9 @@ std::string GameManager::askAlgorithm(tank* t) {
 }
 
 void GameManager::run() {
-    // std::cout << "[DEBUG] run() started." << std::endl;
+    const int MAX_SHELL_TIMEOUT = 40;
+    const int MAX_GAME_STEPS = 50;
+
     std::string input_basename = std::filesystem::path(input_filename).stem().string();
     std::string output_filename = "output_" + input_basename + ".txt";
     std::ofstream game_output(output_filename);
@@ -130,94 +135,143 @@ void GameManager::run() {
         std::cerr << "Error opening game log file!" << std::endl;
         return;
     }
-    // std::cout << "[DEBUG] Output file created: " << output_filename << std::endl;
 
-    int time_out_steps = 10;
+    // std::cout << "[DEBUG] Output file: " << output_filename << std::endl;
+
+    int time_out_steps = MAX_SHELL_TIMEOUT;
     bool game_over = false;
 
-    while (time_out_steps >= 0 && !game_over) {
-        // std::cout << "[DEBUG] Starting new game step. time_out_steps=" << time_out_steps << std::endl;
+    // Order tanks by birth: top-left to bottom-right
+    std::vector<tank*> tanks_by_birth;
+    for (const auto& t_ptr : board->tanks) {
+        tanks_by_birth.push_back(t_ptr.get());
+    }
+    std::sort(tanks_by_birth.begin(), tanks_by_birth.end(), [](tank* a, tank* b) {
+        if (a->get_x() != b->get_x()) return a->get_x() < b->get_x();
+        return a->get_y() < b->get_y();
+    });
+
+    std::unordered_set<tank*> killed_tanks;
+    int round_counter = 0;
+
+    while (time_out_steps >= 0 && !game_over && round_counter < MAX_GAME_STEPS) {
+        // std::cout << "\n[DEBUG] ===== Round " << round_counter + 1 << " =====" << std::endl;
         satelliteCopyReady = false;
 
         bool out_of_shells = true;
         for (const auto& t_ptr : board->tanks) {
-        tank* t = t_ptr.get();  // get raw pointer from shared_ptr
-        if (t->shells > 0) {
-            out_of_shells = false;
-            break;
+            tank* t = t_ptr.get();
+            if (t->shells > 0 && t->alive) {
+                out_of_shells = false;
+                break;
+            }
         }
-}
 
         if (out_of_shells) {
             time_out_steps--;
-            std::cout << "[DEBUG] All tanks are out of shells! Reducing time_out_steps to " << time_out_steps << std::endl;
+            std::cout << "[DEBUG] All tanks are out of shells. time_out_steps = " << time_out_steps << std::endl;
         }
 
-        for (const auto& t_ptr : board->tanks) {
-        tank* t = t_ptr.get();
-        if (t->shot_timer > 0) {
-            t->shot_timer--;
-            std::cout << "[DEBUG] Tank " << t->symbol << "'s shot timer reduced to " << t->shot_timer << std::endl;
+        for (tank* t : tanks_by_birth) {
+            if (t->shot_timer > 0) {
+                t->shot_timer--;
+            }
         }
-}
+
+        board->print_board();
 
         std::vector<std::string> moves;
-        for (const auto& t_ptr : board->tanks) {
-        tank* t = t_ptr.get();
-        std::cout << "[DEBUG] Getting move for tank " << t->symbol << std::endl;
-        if (!t->alive) {
-            moves.push_back("(killed)");
-        } else {
+        std::vector<bool> turn_success;
+
+        for (tank* t : tanks_by_birth) {
+            if (!t->alive) {
+                moves.push_back("killed");
+                turn_success.push_back(false);
+                continue;
+            }
+
             ActionRequest action = t->algo->getAction();
-            std::cout << "[DEBUG] ActionRequest received: " << static_cast<int>(action) << std::endl;
+            std::string move_str = actionToString(action);
+            // std::cout << "[DEBUG] Tank " << t->get_symbol() << " chose action: " << move_str << std::endl;
+
             if (action == ActionRequest::GetBattleInfo) {
-                int player_index = (t->symbol == '1') ? 0 : 1;
+                int player_index = (t->get_symbol() == '1') ? 0 : 1;
                 if (!satelliteCopyReady) {
-                    std::cout << "[DEBUG] Updating satellite view copy..." << std::endl;
+                    std::cout << "[DEBUG] Updating SatelliteView copy..." << std::endl;
                     static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
                     satelliteCopyReady = true;
                 }
-                std::cout << "[DEBUG] Calling updateTankWithBattleInfo for player " << player_index << std::endl;
                 players[player_index]->updateTankWithBattleInfo(*t->algo, *satview);
             }
-            moves.push_back(actionToString(action));
+
+            moves.push_back(move_str);
+            turn_success.push_back(true);
         }
-    }
 
-
-        for (size_t i = 0; i < board->tanks.size(); ++i) {
-            tank* t = board->tanks[i].get(); 
-            const std::string& move = moves[i];
-            if (move == "(killed)") {
-                std::cout << "[DEBUG] Tank " << t->symbol << " is killed." << std::endl;
-                game_output << "Tank " << t->symbol << ": (killed)" << std::endl;
-                continue;
+        for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
+            tank* t = tanks_by_birth[i];
+            if (t->alive && moves[i] != "killed") {
+                // std::cout << "[DEBUG] Tank " << t->get_symbol() << " executing move: " << moves[i] << std::endl;
+                bool ok = t->turn(board.get(), moves[i]);
+                if (!ok) {
+                    // std::cout << "[DEBUG] Move failed (ignored): " << moves[i] << std::endl;
+                    moves[i] += " (ignored)";
+                    turn_success[i] = false;
+                }
             }
-            std::cout << "[DEBUG] Tank " << t->symbol << " executes move: " << move << std::endl;
-            game_output << "Tank " << t->symbol << ": " << move << std::endl;
-            t->turn(board.get(), move);
         }
 
-        std::cout << "[DEBUG] Checking collisions..." << std::endl;
+        // std::cout << "[DEBUG] Handling collisions..." << std::endl;
         game_over = board->handle_cell_collisions();
-        if (game_over) break;
 
-        std::cout << "[DEBUG] Executing board step..." << std::endl;
-        game_over = board->do_step();
+        for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
+            tank* t = tanks_by_birth[i];
+            if (!t->alive && !killed_tanks.count(t)) {
+                // std::cout << "[DEBUG] Tank " << t->get_symbol() << " was killed." << std::endl;
+                if (!turn_success[i] && moves[i].find("(ignored)") != std::string::npos) {
+                    moves[i] += " (killed)";
+                } else {
+                    moves[i] += " (killed)";
+                }
+                killed_tanks.insert(t);
+            }
+        }
 
-        std::cout << "[DEBUG] Printing board state..." << std::endl;
-        board->print_board();
+        // std::cout << "[DEBUG] Round result: " << join(moves, ", ") << std::endl;
+        game_output << join(moves, ", ") << std::endl;
+
+        if (!game_over) {
+            // std::cout << "[DEBUG] Advancing board state..." << std::endl;
+            game_over = board->do_step();
+        }
+
+        ++round_counter;
     }
 
-    std::cout << "[DEBUG] Game over!" << std::endl;
-    if (board->tanks.size() == 1) {
-        std::cout << "Player " << board->tanks[0]->symbol << " wins!" << std::endl;
-        game_output << "Player " << board->tanks[0]->symbol << " wins!" << std::endl;
+    // std::cout << "[DEBUG] Game loop ended." << std::endl;
+    int p1_alive = board->countAliveTanksForPlayer('1');
+    int p2_alive = board->countAliveTanksForPlayer('2');
+
+    std::string final_line;
+    if (p1_alive == 0 && p2_alive == 0) {
+        final_line = "Tie, both players have zero tanks";
+    } else if (time_out_steps < 0) {
+        final_line = "Tie, both players have zero shells for <" + std::to_string(MAX_SHELL_TIMEOUT) + "> steps";
+    } else if (round_counter == MAX_GAME_STEPS) {
+        final_line = "Tie, reached max steps = " + std::to_string(MAX_GAME_STEPS) +
+                     ", player 1 has " + std::to_string(p1_alive) +
+                     " tanks, player 2 has " + std::to_string(p2_alive) + " tanks";
+    } else if (p1_alive > p2_alive) {
+        final_line = "Player 1 won with " + std::to_string(p1_alive) + " tanks still alive";
+    } else if (p2_alive > p1_alive) {
+        final_line = "Player 2 won with " + std::to_string(p2_alive) + " tanks still alive";
     } else {
-        std::cout << "It's a tie!" << std::endl;
-        game_output << "It's a tie!" << std::endl;
+        final_line = "Tie, both players have equal tanks alive";
     }
+
+    // std::cout << "[DEBUG] Final line: " << final_line << std::endl;
+    game_output << final_line << std::endl;
 
     game_output.close();
-    std::cout << "[DEBUG] run() completed." << std::endl;
+    // std::cout << "[DEBUG] Output file closed." << std::endl;
 }

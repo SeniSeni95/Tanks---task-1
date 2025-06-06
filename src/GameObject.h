@@ -8,18 +8,20 @@
 #include <memory>
 
 // Forward declarations
-struct game_board;
-struct cell;
-struct TankAlgorithm;
+class game_board;
+class cell;
+class TankAlgorithm;
 
 // ========================
 // Base Class: game_object
 // ========================
-struct game_object {
+class game_object {
+protected:
     int x;
     int y;
     char symbol;
 
+public:
     game_object();
     game_object(int x, int y, char symbol);
     virtual ~game_object() = default;
@@ -41,14 +43,14 @@ struct game_object {
 // ==========
 // shell
 // ==========
-struct shell : public game_object {
+class shell : public game_object {
+public:
     int directionx;
     int directiony;
     cell* curcell;
     std::string shell_symbol;
     bool just_created;
 
-    // Constructor does NOT insert into cell
     shell(cell* curcell, int directionx, int directiony);
 
     void shell_move_forward(game_board& board);
@@ -59,7 +61,8 @@ struct shell : public game_object {
 // ==========
 // tank
 // ==========
-struct tank : public game_object, public std::enable_shared_from_this<tank> {
+class tank : public game_object, public std::enable_shared_from_this<tank> {
+public:
     int shells;
     int directionx;
     int directiony;
@@ -71,7 +74,6 @@ struct tank : public game_object, public std::enable_shared_from_this<tank> {
     TankAlgorithm* algo;  // Not owned
     bool alive;
 
-    // Constructor does NOT insert into cell
     tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgorithm* algo);
 
     void move_forward(game_board& board);
@@ -90,25 +92,23 @@ struct tank : public game_object, public std::enable_shared_from_this<tank> {
 // ==========
 // mine
 // ==========
-struct mine : public game_object {
+class mine : public game_object {
+public:
     cell* curcell;
 
-    // Constructor does NOT insert into cell
     mine(char symbol, cell* curcell);
-
     std::string to_string() override;
 };
 
 // ==========
 // wall
 // ==========
-struct wall : public game_object {
+class wall : public game_object {
+public:
     int hp;
     cell* curcell;
 
-    // Constructor does NOT insert into cell
     wall(char symbol, cell* curcell);
-
     std::string to_string() override;
 };
 

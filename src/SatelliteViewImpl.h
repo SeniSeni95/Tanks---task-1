@@ -23,7 +23,7 @@ public:
         if (c.objects.empty()) return ' ';
 
         for (const std::shared_ptr<game_object>& obj : c.objects) {
-            char ch = obj->symbol;
+            char ch = obj->get_symbol();
             if (ch != ' ') return ch;
         }
 

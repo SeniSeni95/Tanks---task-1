@@ -57,24 +57,29 @@ shell::shell(cell* curcell, int directionx, int directiony)
 }
 
 void shell::shell_move_forward(game_board& board) {
+    // Remove from current cell
+    curcell->remove_Object(this);
+
+    // Move forward
+    x = (x + directionx + board.n) % board.n;
+    y = (y + directiony + board.m) % board.m;
+
+    curcell = &board.arr[x][y];
+    curcell->add_Object(board.get_shared_shell(this));
+
+    // If it's just been created, don't trigger collision yet
     if (just_created) {
         just_created = false;
-    } else {
-        curcell->remove_Object(this);
-
-        x = (x + directionx + board.n) % board.n;
-        y = (y + directiony + board.m) % board.m;
-
-        curcell = &board.arr[x][y];
-        curcell->add_Object(make_unique<shell>(*this));
+        return;
     }
 
+    // Normal collision detection
     if (curcell->objects.size() > 1 &&
-        find(board.collisions.begin(), board.collisions.end(), curcell) == board.collisions.end()) {
+        std::find(board.collisions.begin(), board.collisions.end(), curcell) == board.collisions.end()) {
         for (const auto& ptr : curcell->objects) {
             game_object* obj = ptr.get();
-            if (obj->symbol == 'w' || obj->symbol == '1' || obj->symbol == '2' || 
-                (dynamic_cast<shell*>(obj) && obj != this)) {
+            if ((obj->get_symbol() == 'w' || obj->get_symbol() == '1' || obj->get_symbol() == '2' ||
+                 (dynamic_cast<shell*>(obj) && obj != this))) {
                 board.collisions.push_back(curcell);
                 break;
             }
@@ -139,7 +144,7 @@ void tank::move_backwards(game_board& board) {
     int new_y = (y - directiony + board.m) % board.m;
     cell* newcell = &board.arr[new_x][new_y];
 
-    if (newcell->has_Object() && newcell->get_Object()->symbol != 'w') {
+    if (newcell->has_Object() && newcell->get_Object()->get_symbol() != 'w') {
         curcell->remove_Object(this);
         curcell = newcell;
         x = new_x;
@@ -173,10 +178,13 @@ void tank::shoot(game_board* board) {
         shells--;
         shot_timer = 4;
         cell* curcell = &board->arr[x][y];
-        auto s = make_unique<shell>(curcell, directionx, directiony);
-        curcell->add_Object(std::move(s));
+
+        auto s = std::make_shared<shell>(curcell, directionx, directiony);
+        curcell->add_Object(s);
+        board->add_shell(s);  // Add shell to the board's shell list
     }
 }
+
 
 bool tank::turn(game_board* board, const string& move) {
     if (gear == "forward") {
@@ -225,7 +233,7 @@ bool tank::handle_move(game_board* board, const string& move) {
 
 bool tank::wall_coll_check(cell* dest) {
     if (dest->has_Object()) {
-        return dest->get_Object()->symbol == 'w';
+        return dest->get_Object()->get_symbol() == 'w';
     }
     return false;
 }

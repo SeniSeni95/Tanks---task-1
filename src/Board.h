@@ -13,16 +13,17 @@
 #endif
 
 // Forward declarations
-struct game_object;
-struct tank;
-struct shell;
-struct mine;
-struct wall;
+class game_object;
+class tank;
+class shell;
+class mine;
+class wall;
 
 // ==========
 // cell
 // ==========
-struct cell {
+class cell {
+public:
     int x, y;
     std::vector<std::shared_ptr<game_object>> objects;
 
@@ -53,34 +54,36 @@ struct cell {
     int get_X();
     int get_Y();
     bool has_Object();
-    game_object* get_Object(); // returns raw pointer, safe for lookup
-    void add_Object(std::shared_ptr<game_object> obj); // now uses shared_ptr
-    void remove_Object(game_object* obj); // still uses raw pointer for filtering
+    game_object* get_Object();
+    void add_Object(std::shared_ptr<game_object> obj);
+    void remove_Object(game_object* obj);
     void print();
 };
 
 // ==========
 // game_board
 // ==========
-struct game_board {
-    int n; // rows
-    int m; // cols
-    std::vector<std::shared_ptr<tank>> tanks;   // owns references, not objects
-    std::vector<std::shared_ptr<shell>> shells; // owns references, not objects
+class game_board {
+public:
+    int n;
+    int m;
+    std::vector<std::shared_ptr<tank>> tanks;
+    std::vector<std::shared_ptr<shell>> shells;
     std::vector<std::vector<cell>> arr;
     std::vector<cell*> collisions;
 
     game_board(int n, int m, std::vector<std::vector<cell>> arr);
 
     void add_tank(std::shared_ptr<tank> t);
-    void remove_tank(game_object* t); // we can remove via pointer matching
+    void remove_tank(game_object* t);
 
     void add_shell(std::shared_ptr<shell> s);
-    void remove_shell(game_object* s); // same for shells
+    std::shared_ptr<shell> get_shared_shell(shell* s);
+    void remove_shell(game_object* s);
 
     void print_board();
     std::unique_ptr<game_board> deep_copy() const;
-
+    int countAliveTanksForPlayer(char symbol) const;
     std::string get_board_state();
 
     bool do_half_step();
