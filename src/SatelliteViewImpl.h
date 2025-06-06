@@ -22,9 +22,8 @@ public:
         const cell& c = boardCopy->arr[x][y];
         if (c.objects.empty()) return ' ';
 
-        for (game_object* obj : c.objects) {
-            // Replace with actual function or char if needed
-            char ch = obj->symbol; 
+        for (const std::shared_ptr<game_object>& obj : c.objects) {
+            char ch = obj->symbol;
             if (ch != ' ') return ch;
         }
 

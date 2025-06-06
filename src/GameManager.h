@@ -12,10 +12,10 @@
 
 class GameManager {
 public:
-    GameManager(const PlayerFactory& playerFactory, const TankAlgorithmFactory& tankFactory);
+    GameManager(std::unique_ptr<PlayerFactory> playerFactory, std::unique_ptr<TankAlgorithmFactory> tankFactory);
 
-    bool readBoard(const std::string& filename);
-    void run(const std::string& input_filename);// main game loop
+    void readBoard(const std::string& filename);
+    void run();// main game loop
     std::string actionToString(ActionRequest action);
     std::string askAlgorithm(tank* t);
 
@@ -38,7 +38,7 @@ private:
     std::unique_ptr<TankAlgorithmFactory> tankAlgorithmFactory;
     size_t maxSteps = 0;
     size_t numShells = 0;
-    std::string inputFilename;
+     std::string input_filename;
 
     std::vector<std::shared_ptr<Player>> players;
     std::vector<std::shared_ptr<TankAlgorithm>> tankAlgorithms;

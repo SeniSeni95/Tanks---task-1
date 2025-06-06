@@ -1,4 +1,6 @@
+#pragma once
+
 class BattleInfo {
 public:
-	virtual ~BattleInfo() {}
+    virtual ~BattleInfo() {}
 };
