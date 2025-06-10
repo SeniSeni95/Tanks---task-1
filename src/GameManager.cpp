@@ -54,8 +54,9 @@ void GameManager::readBoard(const std::string& filename) {
     }
 
     board = std::make_unique<game_board>(rows, cols, std::move(arr));
-    std::map<char, int> tank_counts;
     std::set<char> valid_chars = {'#', '1', '2', ' ', '@'};
+
+    std::vector<int> tank_counters(2, 0); // 0 for player 1, 1 for player 2
 
     for (int i = 0; i < rows; ++i) {
         getline(file, line);
@@ -72,20 +73,24 @@ void GameManager::readBoard(const std::string& filename) {
             } else if (ch == '@') {
                 current.add_Object(std::make_shared<mine>('@', &current));
             } else if (ch == '1' || ch == '2') {
-                auto tank_ptr = std::make_shared<tank>(ch, 0, 1, &current, nullptr);
+                int player_number = (ch == '1') ? 0 : 1;
+                int tank_number = tank_counters[player_number]++;
+                // Default direction: facing right (0,1), adjust as needed
+                auto tank_ptr = std::make_shared<tank>(ch, player_number, tank_number, 0, 1, &current, nullptr);
                 board->tanks.push_back(tank_ptr);
                 current.add_Object(tank_ptr);
-                tank_counts[ch]++;
             }
         }
     }
 
     file.close();
 
+    // Assign tank algorithms with correct indices
     for (const auto& t_ptr : board->tanks) {
         tank* t = t_ptr.get();
-        int player_index = (t->symbol == '1') ? 0 : 1;
-        auto algo = tankAlgorithmFactory->create(player_index, 0);
+        int player_index = t->player_number;
+        int tank_index = t->tank_number;
+        auto algo = tankAlgorithmFactory->create(player_index, tank_index);
         t->algo = algo.get();
         tankAlgorithms.push_back(std::move(algo));
     }
@@ -94,7 +99,6 @@ void GameManager::readBoard(const std::string& filename) {
     players[0] = playerFactory->create(0, rows, cols, maxSteps, numShells);
     players[1] = playerFactory->create(1, rows, cols, maxSteps, numShells);
 }
-
 
 std::string GameManager::actionToString(ActionRequest action) {
     switch (action) {
@@ -136,8 +140,6 @@ void GameManager::run() {
         return;
     }
 
-    // std::cout << "[DEBUG] Output file: " << output_filename << std::endl;
-
     int time_out_steps = MAX_SHELL_TIMEOUT;
     bool game_over = false;
 
@@ -154,8 +156,9 @@ void GameManager::run() {
     std::unordered_set<tank*> killed_tanks;
     int round_counter = 0;
 
+    std::unordered_set<tank*> recently_killed; // tanks killed this turn
+
     while (time_out_steps >= 0 && !game_over && round_counter < MAX_GAME_STEPS) {
-        // std::cout << "\n[DEBUG] ===== Round " << round_counter + 1 << " =====" << std::endl;
         satelliteCopyReady = false;
 
         bool out_of_shells = true;
@@ -180,75 +183,62 @@ void GameManager::run() {
 
         board->print_board();
 
-        std::vector<std::string> moves;
-        std::vector<bool> turn_success;
+        std::vector<std::string> moves(tanks_by_birth.size());
+        std::vector<bool> turn_success(tanks_by_birth.size(), false);
 
-        for (tank* t : tanks_by_birth) {
-            if (!t->alive) {
-                moves.push_back("killed");
-                turn_success.push_back(false);
-                continue;
-            }
-
-            ActionRequest action = t->algo->getAction();
-            std::string move_str = actionToString(action);
-            // std::cout << "[DEBUG] Tank " << t->get_symbol() << " chose action: " << move_str << std::endl;
-
-            if (action == ActionRequest::GetBattleInfo) {
-                int player_index = (t->get_symbol() == '1') ? 0 : 1;
-                if (!satelliteCopyReady) {
-                    std::cout << "[DEBUG] Updating SatelliteView copy..." << std::endl;
-                    static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
-                    satelliteCopyReady = true;
-                }
-                players[player_index]->updateTankWithBattleInfo(*t->algo, *satview);
-            }
-
-            moves.push_back(move_str);
-            turn_success.push_back(true);
-        }
-
+        // Only ask alive tanks for their move
         for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
             tank* t = tanks_by_birth[i];
-            if (t->alive && moves[i] != "killed") {
-                // std::cout << "[DEBUG] Tank " << t->get_symbol() << " executing move: " << moves[i] << std::endl;
+            if (t->alive) {
+                ActionRequest action = t->algo->getAction();
+                moves[i] = actionToString(action);
+                turn_success[i] = true;
+                if (action == ActionRequest::GetBattleInfo) {
+                    int player_index = t->player_number;
+                    if (!satelliteCopyReady) {
+                        static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
+                        satelliteCopyReady = true;
+                    }
+                    players[player_index]->updateTankWithBattleInfo(*t->algo, *satview);
+                }
+            } else {
+                moves[i] = "killed";
+            }
+        }
+
+        // Execute moves for alive tanks
+        for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
+            tank* t = tanks_by_birth[i];
+            if (t->alive) {
                 bool ok = t->turn(board.get(), moves[i]);
                 if (!ok) {
-                    // std::cout << "[DEBUG] Move failed (ignored): " << moves[i] << std::endl;
                     moves[i] += " (ignored)";
                     turn_success[i] = false;
                 }
             }
         }
 
-        // std::cout << "[DEBUG] Handling collisions..." << std::endl;
-        game_over = board->handle_cell_collisions();
+        // Handle collisions (kills) and fill recently_killed
+        recently_killed.clear();
+        game_over = board->handle_cell_collisions(&recently_killed);
 
+        if (!game_over) {
+            game_over = board->do_step(&recently_killed);
+        }
+
+        // Mark moves of tanks killed this turn (AFTER do_step)
         for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
             tank* t = tanks_by_birth[i];
-            if (!t->alive && !killed_tanks.count(t)) {
-                // std::cout << "[DEBUG] Tank " << t->get_symbol() << " was killed." << std::endl;
-                if (!turn_success[i] && moves[i].find("(ignored)") != std::string::npos) {
-                    moves[i] += " (killed)";
-                } else {
-                    moves[i] += " (killed)";
-                }
+            if (recently_killed.count(t)) {
+                moves[i] += " (killed)";
                 killed_tanks.insert(t);
             }
         }
 
-        // std::cout << "[DEBUG] Round result: " << join(moves, ", ") << std::endl;
         game_output << join(moves, ", ") << std::endl;
-
-        if (!game_over) {
-            // std::cout << "[DEBUG] Advancing board state..." << std::endl;
-            game_over = board->do_step();
-        }
-
         ++round_counter;
     }
 
-    // std::cout << "[DEBUG] Game loop ended." << std::endl;
     int p1_alive = board->countAliveTanksForPlayer('1');
     int p2_alive = board->countAliveTanksForPlayer('2');
 
@@ -269,9 +259,6 @@ void GameManager::run() {
         final_line = "Tie, both players have equal tanks alive";
     }
 
-    // std::cout << "[DEBUG] Final line: " << final_line << std::endl;
     game_output << final_line << std::endl;
-
     game_output.close();
-    // std::cout << "[DEBUG] Output file closed." << std::endl;
 }

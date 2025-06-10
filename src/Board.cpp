@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <unordered_set>
 
 // --------------------
 // cell methods
@@ -130,7 +131,7 @@ std::string game_board::get_board_state() {
     return state;
 }
 
-std::unique_ptr<game_board> game_board::deep_copy() const {
+std::unique_ptr<game_board> game_board::dummy_copy() const {
     std::vector<std::vector<cell>> arr_copy;
     arr_copy.reserve(n);
     for (int i = 0; i < n; ++i) {
@@ -150,19 +151,31 @@ std::unique_ptr<game_board> game_board::deep_copy() const {
             auto& dst_cell = new_board->arr[i][j];
 
             for (const auto& obj_ptr : src_cell.objects) {
-                game_object* obj = obj_ptr.get();
-                if (tank* t = dynamic_cast<tank*>(obj)) {
-                    auto new_tank = std::make_shared<tank>(*t);
-                    new_board->tanks.push_back(new_tank);
-                    dst_cell.add_Object(new_tank);
-                } else if (shell* s = dynamic_cast<shell*>(obj)) {
-                    auto new_shell = std::make_shared<shell>(*s);
-                    new_board->shells.push_back(new_shell);
-                    dst_cell.add_Object(new_shell);
-                } else if (mine* m = dynamic_cast<mine*>(obj)) {
-                    dst_cell.add_Object(std::make_shared<mine>(*m));
-                } else if (wall* w = dynamic_cast<wall*>(obj)) {
-                    dst_cell.add_Object(std::make_shared<wall>(*w));
+                if (auto t = dynamic_cast<tank*>(obj_ptr.get())) {
+                    auto t_copy = std::make_shared<tank>(
+                        t->symbol, t->player_number, t->tank_number,
+                        0, 0, &dst_cell, nullptr // directionx/y set to 0
+                    );
+                    t_copy->shells = t->shells;
+                    t_copy->shot_timer = t->shot_timer;
+                    t_copy->cannon_symbol = t->cannon_symbol;
+                    t_copy->gear = t->gear;
+                    t_copy->alive = t->alive;
+                    dst_cell.add_Object(t_copy);
+                    new_board->tanks.push_back(t_copy);
+                } else if (auto s = dynamic_cast<shell*>(obj_ptr.get())) {
+                    auto s_copy = std::make_shared<shell>(&dst_cell, 0, 0); // directionx/y set to 0
+                    s_copy->shell_symbol = "*"; // set symbol to star
+                    s_copy->just_created = s->just_created;
+                    dst_cell.add_Object(s_copy);
+                    new_board->shells.push_back(s_copy);
+                } else if (auto m = dynamic_cast<mine*>(obj_ptr.get())) {
+                    auto m_copy = std::make_shared<mine>(m->get_symbol(), &dst_cell);
+                    dst_cell.add_Object(m_copy);
+                } else if (auto w = dynamic_cast<wall*>(obj_ptr.get())) {
+                    auto w_copy = std::make_shared<wall>(w->get_symbol(), &dst_cell);
+                    w_copy->hp = w->hp;
+                    dst_cell.add_Object(w_copy);
                 }
             }
         }
@@ -171,19 +184,19 @@ std::unique_ptr<game_board> game_board::deep_copy() const {
     return new_board;
 }
 
-bool game_board::do_half_step() {
+bool game_board::do_half_step(std::unordered_set<tank*>* recently_killed) {
     bool game_over = false;
     process_shells();
     if (!collisions.empty()) {
-        game_over = handle_cell_collisions();
+        game_over = handle_cell_collisions(recently_killed);
     }
     return game_over;
 }
 
-bool game_board::do_step() {
-    bool game_over = do_half_step();
+bool game_board::do_step(std::unordered_set<tank*>* recently_killed) {
+    bool game_over = do_half_step(recently_killed);
     if (game_over) return true;
-    return do_half_step();
+    return do_half_step(recently_killed);
 }
 
 void game_board::process_shells() {
@@ -250,9 +263,7 @@ void game_board::process_shells() {
 
 
 
-bool game_board::handle_cell_collisions() {
-    // std::cout << "[DEBUG] Entering handle_cell_collisions..." << std::endl;
-
+bool game_board::handle_cell_collisions(std::unordered_set<tank*>* recently_killed) {
     for (cell* c : collisions) {
         std::vector<game_object*> tanks_to_remove;
         std::vector<game_object*> shells_to_remove;
@@ -269,30 +280,43 @@ bool game_board::handle_cell_collisions() {
             }
         }
 
-        // Remove all tanks hit by shell or mine
-        if ((!shells_to_remove.empty() && !tanks_to_remove.empty()) ||
-            (!mines_to_remove.empty() && !tanks_to_remove.empty())) {
-            // std::cout << "[DEBUG] Tank(s) killed in collision at cell!" << std::endl;
+        // --- TANK VS TANK: destroy all tanks if more than one tank on the cell ---
+        if (tanks_to_remove.size() > 1) {
             for (game_object* t : tanks_to_remove) {
                 if (tank* tk = dynamic_cast<tank*>(t)) {
-                    // std::cout << "[DEBUG] Marking tank " << tk->symbol << " as dead." << std::endl;
+                    if (tk->alive && recently_killed) {
+                        recently_killed->insert(tk);
+                    }
                     tk->alive = false;
                     remove_tank(tk);
                     c->remove_Object(tk);
                 }
             }
         }
-
-        for (game_object* m : mines_to_remove) {
-            // std::cout << "[DEBUG] Removing mine." << std::endl;
-            c->remove_Object(m);
+        // --- TANK VS SHELL or TANK VS MINE: destroy tanks if at least one tank and one shell or mine ---
+        else if ((!shells_to_remove.empty() && !tanks_to_remove.empty()) ||
+                 (!mines_to_remove.empty() && !tanks_to_remove.empty())) {
+            // Destroy tanks
+            for (game_object* t : tanks_to_remove) {
+                if (tank* tk = dynamic_cast<tank*>(t)) {
+                    if (tk->alive && recently_killed) {
+                        recently_killed->insert(tk);
+                    }
+                    tk->alive = false;
+                    remove_tank(tk);
+                    c->remove_Object(tk);
+                }
+            }
+            // Destroy shells ONLY if a tank is present (tank vs shell)
+            if (!shells_to_remove.empty() && !tanks_to_remove.empty()) {
+                for (game_object* s : shells_to_remove) {
+                    remove_shell(s);
+                    c->remove_Object(s);
+                }
+            }
+            // Mines persist!
         }
-
-        for (game_object* s : shells_to_remove) {
-            // std::cout << "[DEBUG] Removing shell." << std::endl;
-            remove_shell(s);
-            c->remove_Object(s);
-        }
+        // Shells and mines only interact with tanks, not with each other.
     }
 
     collisions.clear();
@@ -300,20 +324,13 @@ bool game_board::handle_cell_collisions() {
     // Count living tanks per player
     bool p1_alive = false;
     bool p2_alive = false;
-
-    // std::cout << "[DEBUG] Tanks after collision handling:" << std::endl;
     for (const auto& t : tanks) {
-        // std::cout << "  Tank " << t->symbol << " alive=" << t->alive << std::endl;
-
         if (!t->alive) continue;
-
         if (t->symbol == '1') p1_alive = true;
         if (t->symbol == '2') p2_alive = true;
     }
 
-    bool result = !(p1_alive && p2_alive);
-    // std::cout << "[DEBUG] handle_cell_collisions returning " << std::boolalpha << result << std::endl;
-    return result;
+    return !(p1_alive && p2_alive);
 }
 
 

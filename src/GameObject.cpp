@@ -56,6 +56,9 @@ shell::shell(cell* curcell, int directionx, int directiony)
     set_shell_symbol();
 }
 
+char shell::get_symbol() {
+    return '*'; // or symbol if you want to use a field
+}
 void shell::shell_move_forward(game_board& board) {
     // Remove from current cell
     curcell->remove_Object(this);
@@ -110,8 +113,10 @@ string shell::to_string() {
 // tank
 // --------------------
 
-tank::tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgorithm* algo)
+tank::tank(char symbol, int player_number, int tank_number, int directionx, int directiony, cell* curcell, TankAlgorithm* algo)
     : shells(16),
+      player_number(player_number),
+      tank_number(tank_number),
       directionx(directionx),
       directiony(directiony),
       shot_timer(0),
@@ -126,7 +131,9 @@ tank::tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgor
     y = curcell->get_Y();
     set_cannon_symbol();
 }
-
+char tank::get_symbol() {
+    return symbol; // or whatever field you use for the tank's symbol
+}
 void tank::move_forward(game_board& board) {
     curcell->remove_Object(this);
     x = (x + directionx + board.n) % board.n;

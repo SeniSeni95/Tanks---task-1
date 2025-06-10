@@ -24,9 +24,9 @@ protected:
 public:
     game_object();
     game_object(int x, int y, char symbol);
+    virtual char get_symbol();
     virtual ~game_object() = default;
 
-    [[nodiscard]] char get_symbol();
     void set_symbol(char s);
     void set_x(int x);
     void set_y(int y);
@@ -51,8 +51,9 @@ public:
     std::string shell_symbol;
     bool just_created;
 
-    shell(cell* curcell, int directionx, int directiony);
 
+    shell(cell* curcell, int directionx, int directiony);
+    char get_symbol() override;
     void shell_move_forward(game_board& board);
     void set_shell_symbol();
     std::string to_string() override;
@@ -64,6 +65,8 @@ public:
 class tank : public game_object, public std::enable_shared_from_this<tank> {
 public:
     int shells;
+    int player_number; // 0 or 1
+    int tank_number;   // per-player index
     int directionx;
     int directiony;
     int shot_timer;
@@ -74,8 +77,8 @@ public:
     TankAlgorithm* algo;  // Not owned
     bool alive;
 
-    tank(char symbol, int directionx, int directiony, cell* curcell, TankAlgorithm* algo);
-
+    tank(char symbol, int player_number, int tank_number, int directionx, int directiony, cell* curcell, TankAlgorithm* algo);
+    char get_symbol() override;
     void move_forward(game_board& board);
     void move_backwards(game_board& board);
     void rotate_4(std::string direction);

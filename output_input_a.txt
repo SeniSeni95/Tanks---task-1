@@ -1,5 +1,6 @@
-fw (killed), fw (killed), fw, fw
-killed, killed, shoot, skip
+fw (killed), fw (killed), skip, r4r
 killed, killed, skip, skip
-killed, killed, fw, fw
-Player 1 won with 1 tanks still alive
+killed, killed, skip, r4r
+killed, killed, shoot, shoot
+killed, killed, skip, skip
+killed, killed, skip, skip

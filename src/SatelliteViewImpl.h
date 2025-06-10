@@ -5,6 +5,10 @@
 #include "Board.h"
 #include <memory>
 #include <cstddef>
+#include <vector>
+#include <tuple>
+#include <string>
+#include <unordered_set>
 
 class SatelliteViewImpl : public SatelliteView {
 private:
@@ -12,7 +16,7 @@ private:
 
 public:
     void updateCopy(const game_board& original) {
-        boardCopy = std::unique_ptr<game_board>(original.deep_copy());
+        boardCopy = std::unique_ptr<game_board>(original.dummy_copy());
     }
 
     char getObjectAt(size_t x, size_t y) const override {
@@ -29,6 +33,16 @@ public:
 
         return ' ';
     }
+
+    void print_board() const {
+        if (boardCopy) boardCopy->print_board();
+    }
+
+    std::unique_ptr<SatelliteViewImpl> simulate_step(
+        const std::vector<std::tuple<int, int, int, int>>& shell_data,
+        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data,
+        const std::string& action
+    ) const;
 };
 
-#endif // SATELLITE_VIEW_IMPL_H
+#endif

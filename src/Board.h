@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <string>
 #include "GameObject.h"
+#include <unordered_set>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -82,14 +83,14 @@ public:
     void remove_shell(game_object* s);
 
     void print_board();
-    std::unique_ptr<game_board> deep_copy() const;
+    std::unique_ptr<game_board> dummy_copy() const;
     int countAliveTanksForPlayer(char symbol) const;
     std::string get_board_state();
 
-    bool do_half_step();
-    bool do_step();
+    bool do_half_step(std::unordered_set<tank*>* recently_killed);
+    bool do_step(std::unordered_set<tank*>* recently_killed);
     void process_shells();
-    bool handle_cell_collisions();
+    bool handle_cell_collisions(std::unordered_set<tank*>* recently_killed);
 
     void destroy_all_objects();
 };
