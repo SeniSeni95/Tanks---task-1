@@ -1,7 +1,7 @@
 
 #include "TankAlgorithmFactory.h"
-#include "AggressiveTank.h"
-#include "CalmTank.h"
+#include "tanks/AggressiveTank.h"
+#include "tanks/CalmTank.h"
 
 class MyTankAlgorithmFactory : public TankAlgorithmFactory {
 public:

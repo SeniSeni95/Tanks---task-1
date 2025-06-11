@@ -1,3 +1,4 @@
+#pragma once
 #include "BattleInfo.h"
 #include "ActionRequest.h"
 #include <string>

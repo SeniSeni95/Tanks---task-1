@@ -2,8 +2,8 @@
 
 #include <iostream>  // for std::cout
 #include "PlayerFactory.h"
-#include "AggressivePlayer.h"
-#include "CalmPlayer.h"
+#include "players/AggressivePlayer.h"
+#include "players/CalmPlayer.h"
 
 class MyPlayerFactory : public PlayerFactory {
 public:
