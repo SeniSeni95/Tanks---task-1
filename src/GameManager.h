@@ -10,12 +10,14 @@
 #include "SatelliteView.h"
 #include "SatelliteViewImpl.h"
 
+std::string actionToString(ActionRequest action);
+ActionRequest stringToAction(const std::string& actionStr);
+
 class GameManager {
 public:
     GameManager(std::unique_ptr<PlayerFactory> playerFactory, std::unique_ptr<TankAlgorithmFactory> tankFactory);
     void readBoard(const std::string& filename);
     void run(); // main game loop
-    std::string actionToString(ActionRequest action);
     std::string askAlgorithm(tank* t);
 
 private:

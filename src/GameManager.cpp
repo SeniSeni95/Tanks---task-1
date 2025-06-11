@@ -100,7 +100,7 @@ void GameManager::readBoard(const std::string& filename) {
     players[1] = playerFactory->create(1, rows, cols, maxSteps, numShells);
 }
 
-std::string GameManager::actionToString(ActionRequest action) {
+std::string actionToString(ActionRequest action) {
     switch (action) {
         case ActionRequest::MoveForward: return "fw";
         case ActionRequest::MoveBackward: return "bw";
@@ -112,6 +112,21 @@ std::string GameManager::actionToString(ActionRequest action) {
         case ActionRequest::DoNothing: return "skip";
         default: return "skip";
     }
+}
+
+ActionRequest stringToAction(string action) {
+    switch (std::hash<std::string>{}(action)) {
+        case std::hash<std::string>{}("fw"): return ActionRequest::MoveForward;
+        case std::hash<std::string>{}("bw"): return ActionRequest::MoveBackward;
+        case std::hash<std::string>{}("r4l"): return ActionRequest::RotateLeft90;
+        case std::hash<std::string>{}("r4r"): return ActionRequest::RotateRight90;
+        case std::hash<std::string>{}("r8l"): return ActionRequest::RotateLeft45;
+        case std::hash<std::string>{}("r8r"): return ActionRequest::RotateRight45;
+        case std::hash<std::string>{}("shoot"): return ActionRequest::Shoot;
+        case std::hash<std::string>{}("skip"): return ActionRequest::DoNothing;
+    }
+
+    return ActionRequest::DoNothing;
 }
 
 std::string GameManager::askAlgorithm(tank* t) {

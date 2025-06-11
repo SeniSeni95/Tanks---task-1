@@ -1,4 +1,4 @@
-#include "board.h"
+#include "Board.h"
 #include <memory>
 #include <algorithm>
 #include <iostream>

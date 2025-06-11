@@ -92,6 +92,10 @@ public:
     void process_shells();
     bool handle_cell_collisions(std::unordered_set<tank*>* recently_killed);
 
+    void simulate_step(
+        const std::tuple<int, int, std::string>& tank_action
+    ) const;
+
     void destroy_all_objects();
 };
 

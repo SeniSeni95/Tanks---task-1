@@ -9,8 +9,8 @@
 #include <ctime>
 #include <math.h>
 #include "utils.h"
-#include "board.h"
-#include "game_objects.h"
+#include "Board.h"
+#include "GameObject.h"
 using namespace std;
 
 #ifndef M_PI
@@ -25,15 +25,15 @@ const int SHELL_DANGER_DISTANCE = 4; // Shell danger distance
 const int MINE_DANGER_RADIUS = 2;  // Mine danger radius
 
 // Forward declarations
-struct game_board;
-struct tank;
-struct shell;
-struct mine;
-struct wall;
-struct cell;
-struct Vector2D;
+class game_board;
+class tank;
+class shell;
+class mine;
+class wall;
+class cell;
+class Vector2D;
 
-struct algorithm {
+class algorithm {
 protected:
     std::vector<wall*> walls;
     std::vector<mine*> mines;
@@ -62,7 +62,7 @@ public:
     std::pair<std::string, double> decide_move(game_board* board, tank* self, int lookahead, bool first_call = true);
 };
 
-struct shell_avoidance_algorithm : public algorithm {
+class shell_avoidance_algorithm : public algorithm {
 protected:
     int shell_danger_radius;
     int shell_danger_distance;
@@ -76,14 +76,14 @@ public:
 
 int find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
 
-struct chasing_algorithm : public shell_avoidance_algorithm {
+class chasing_algorithm : public shell_avoidance_algorithm {
 public:
     chasing_algorithm();
     virtual double score_position(game_board* board_copy, tank* self_copy) override;
     virtual double score_shoot(game_board* board, tank* self, int lookahead) override;
 };
 
-struct running_algorithm : public shell_avoidance_algorithm {
+class running_algorithm : public shell_avoidance_algorithm {
 public:
     running_algorithm();
     virtual double score_position(game_board* board_copy, tank* self_copy) override;

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
-#include "board.h"
+#include "Board.h"
 #include "GameObject.h"
 
 // Forward declarations

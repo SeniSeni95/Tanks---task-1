@@ -4,7 +4,7 @@
 algorithm::algorithm() {}
 
 void algorithm::other_tanks_turn(game_board* board, tank* self) {
-    for (tank* t : board->tanks) {
+    for (auto& t : board->tanks) {
         if (t->symbol != self->symbol) {
             t->turn(board, "shoot"); // Assume everyone else tries to kill us
         }
@@ -12,21 +12,21 @@ void algorithm::other_tanks_turn(game_board* board, tank* self) {
 }
 
 void algorithm::do_move(game_board* board, tank* self, const std::string& move) {    
-    self->turn(board, move);
-    // other_tanks_turn(board, self);
-    board->handle_cell_collisions();
-    board->do_step();
+    board->simulate_step(std::make_tuple(
+        self->get_x(),
+        self->get_y(),
+        move
+    ));
 }
 
 double algorithm::score_single_move(game_board* board, tank* self, const std::string& move, int lookahead) {
-    game_board* board_copy = board->deep_copy();
-    tank* self_copy = get_self_in_board_copy(board_copy, self);
+    unique_ptr<game_board> board_copy = board->dummy_copy();
+    tank* self_copy = get_self_in_board_copy(board_copy.get(), self);
 
-    do_move(board_copy, self_copy, move);
-    double score = base_score(board_copy, self_copy, lookahead);
+    do_move(board_copy.get(), self_copy, move);
+    double score = base_score(board_copy.get(), self_copy, lookahead);
 
-    board_copy->destroy_all_objects();
-    delete board_copy;
+    board_copy.release();
 
     return score;
 }
@@ -68,9 +68,9 @@ double algorithm::score_skip(game_board* board, tank* self, int lookahead) {
 }
 
 tank* algorithm::get_self_in_board_copy(game_board* board_copy, tank* self) {
-    for (tank* t : board_copy->tanks) {
+    for (auto& t : board_copy->tanks) {
         if (t->symbol == self->symbol) {
-            return t;
+            return t.get();
         }
     }
     std::cout << "Error: Tank not found in board copy!" << std::endl;
@@ -157,10 +157,10 @@ shell_avoidance_algorithm::shell_avoidance_algorithm() : algorithm(), shell_dang
 double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* self_copy) {
     double score = 0;
 
-    for (shell* s : board_copy->shells) {
-        Vector2D shell_pos = {s->x, s->y};
+    for (auto& s : board_copy->shells) {
+        Vector2D shell_pos = {s->get_x(), s->get_y()};
         Vector2D shell_dir = {s->directionx, s->directiony};
-        Vector2D tank_pos = {self_copy->x, self_copy->y};
+        Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
 
         if (shell_pos.x == tank_pos.x && shell_pos.y == tank_pos.y) {
             return DEATH;
@@ -180,8 +180,8 @@ double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* s
     }
 
     for (mine* m : mines) {
-        Vector2D mine_pos = {m->x,m->y};
-        Vector2D tank_pos = {self_copy->x, self_copy->y};
+        Vector2D mine_pos = {m->get_x(),m->get_y()};
+        Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
 
         double distance_to_mine = tank_pos.chebyshevDistance(mine_pos);
 
@@ -200,7 +200,7 @@ double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* s
 double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_copy, int lookahead) {
     // First, check if the tank still exists in the board copy
     bool tank_exists = false;
-    for (tank* t : board_copy->tanks) {
+    for (auto& t : board_copy->tanks) {
         if (t->symbol == self_copy->symbol) {
             tank_exists = true;
             break;
@@ -266,7 +266,7 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
 
                     if (board->arr[new_x][new_y].has_Object()) {
                         game_object* obj = board->arr[new_x][new_y].get_Object();
-                        if (obj->symbol == 'w' || obj->symbol == 'm') {
+                        if (obj->get_symbol() == 'w' || obj->get_symbol()== 'm') {
                             continue; // Skip walls and mines
                         }
                     }
@@ -289,10 +289,10 @@ double running_algorithm::score_position(game_board* board_copy, tank* self_copy
         return DEATH;
     }
 
-    for (tank* t : board_copy->tanks) {
+    for (auto& t : board_copy->tanks) {
         if (t->symbol != self_copy->symbol) {
-            Vector2D tank_pos = {self_copy->x, self_copy->y};
-            Vector2D enemy_tank_pos = {t->x, t->y};
+            Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
+            Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
 
             int shortest_path = find_shortest_path(tank_pos, enemy_tank_pos, board_copy);
 
@@ -317,10 +317,10 @@ double chasing_algorithm::score_position(game_board* board_copy, tank* self_copy
         return DEATH;
     }
 
-    for (tank* t : board_copy->tanks) {
+    for (auto& t : board_copy->tanks) {
         if (t->symbol != self_copy->symbol) {
-            Vector2D tank_pos = {self_copy->x, self_copy->y};
-            Vector2D enemy_tank_pos = {t->x, t->y};
+            Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
+            Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
 
             int shortest_path = find_shortest_path(tank_pos, enemy_tank_pos, board_copy);
             score += pow(15.0 / (double) (shortest_path + 1), 1.5); // Closer to the enemy tank, higher the score
@@ -343,11 +343,11 @@ double chasing_algorithm::score_shoot(game_board* board, tank* self, int lookahe
         return DEATH;
     }
 
-    for (tank* t : board->tanks) {
+    for (auto& t : board->tanks) {
         if (t->symbol != self->symbol) {
             // Check if the enemy tank is in the line of fire
-            Vector2D enemy_tank_pos = {t->x, t->y};
-            Vector2D shell_pos = {self->x + self->directionx, self->y + self->directiony};
+            Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
+            Vector2D shell_pos = {self->get_x() + self->directionx, self->get_y() + self->directiony};
             Vector2D shell_dir = {self->directionx, self->directiony};
             std::pair<int, int> dists = chebyshevDistanceToLine(shell_pos, shell_dir, enemy_tank_pos, board);
 

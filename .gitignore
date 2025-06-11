@@ -1,3 +1,4 @@
-Tanks
 *.exe
 Tanks.dSYM/
+.vscode/
+ignored/
