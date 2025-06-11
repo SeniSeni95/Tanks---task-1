@@ -1,4 +1,5 @@
 #pragma once
+#include "ActionRequest.h"
 #include "TankAlgorithm.h"
 #include "MyBattleInfo.h"
 #include "GameManager.h"
@@ -19,10 +20,11 @@ protected:
 public:
     AbstractTankAlgorithm(int player_index, int tank_index);
     virtual ~AbstractTankAlgorithm() = default;
-    ActionRequest getAction() override = 0;
+    ActionRequest getAction() override;
     virtual ActionRequest getActionInternal();
 
-    void updateBattleInfo(BattleInfo& info) override = 0;
+    void updateBattleInfo(BattleInfo& info) override;
 
     virtual unique_ptr<algorithm> createAlgorithm() = 0;
+    virtual void initialize();
 };

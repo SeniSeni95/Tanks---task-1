@@ -57,7 +57,7 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
     // Clone board
     unique_ptr<game_board> board_copy = board.dummy_copy();
     // Create a BattleInfo object with the cloned board
-    MyBattleInfo battle_info(move(board_copy));
+    MyBattleInfo battle_info(std::move(board_copy));
     // Update the tank's algorithm with the battle info
     tankAlg.updateBattleInfo(battle_info);
 
@@ -99,9 +99,9 @@ void AbstractPlayer::updateBoard(const SatelliteViewImpl *view)
     // Update tanks and shells based on the satellite view
     vector<tuple<int, int, int, int, string>> tank_data;
     vector<tuple<int, int, int, int>> shell_data;
-    for (int x = 0; x < width; ++x)
+    for (size_t x = 0; x < width; ++x)
     {
-        for (int y = 0; y < height; ++y)
+        for (size_t y = 0; y < height; ++y)
         {
             Vector2D target_pos = {x, y};
 
@@ -259,9 +259,9 @@ vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(co
 {
     vector<tuple<int, int, int, int, string>> tank_data;
     // Iterate through the view to find all the items
-    for (int x = 0; x < width; ++x)
+    for (size_t x = 0; x < width; ++x)
     {
-        for (int y = 0; y < height; ++y)
+        for (size_t y = 0; y < height; ++y)
         {
             char symbol = view->getObjectAt(x, y);
             if (isTank(symbol, player_index))

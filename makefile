@@ -8,7 +8,13 @@ SRC = src/main.cpp \
       src/utils.cpp \
       src/MyTankAlgorithm.cpp \
       src/MyTankAlgorithmFactory.cpp \
-      src/SatelliteViewImpl.cpp
+      src/SatelliteViewImpl.cpp \
+      src/players/AbstractPlayer.cpp \
+      src/players/CalmPlayer.cpp \
+      src/players/AggressivePlayer.cpp \
+      src/tanks/AbstractTankAlgorithm.cpp \
+      src/tanks/AggressiveTank.cpp \
+      src/tanks/CalmTank.cpp \
 
 TARGET = tanks_main
 

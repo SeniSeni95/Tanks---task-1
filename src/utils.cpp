@@ -5,23 +5,6 @@ using namespace std;
 #define M_PI 3.14159265358979323846
 #endif
 
-Vector2D Vector2D::operator+(const Vector2D& other) const {
-    return {x + other.x, y + other.y};
-}
-
-Vector2D Vector2D::operator*(double scalar) const {
-    return {(int) round((double)x * scalar), (int) round((double)y * scalar)};
-}
-
-Vector2D Vector2D::operator-(const Vector2D& other) const {
-    return {x - other.x, y - other.y};
-}
-
-// Chebyshev (L∞) norm
-int Vector2D::chebyshevDistance(const Vector2D& other) const {
-    return std::max(std::abs(x - other.x), std::abs(y - other.y));
-}
-
 // Finds the closest Chebyshev distance between a point and a parametric line
 std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, game_board* board) {
     if (point.x == linePoint.x && point.y == linePoint.y) {

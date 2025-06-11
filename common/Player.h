@@ -1,5 +1,6 @@
 #pragma once
 #include "SatelliteView.h"
+#include "TankAlgorithm.h"
 
 
 class Player {

@@ -17,7 +17,7 @@ private:
     unique_ptr<game_board> board;
 
 public:
-    MyBattleInfo(unique_ptr<game_board> board) : board(move(board)) {}
+    MyBattleInfo(unique_ptr<game_board> board) : board(std::move(board)) {}
     virtual ~MyBattleInfo() = default;
 
     game_board *getBoard() const {

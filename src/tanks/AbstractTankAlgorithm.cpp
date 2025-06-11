@@ -2,8 +2,7 @@
 
 using namespace std;
 
-AbstractTankAlgorithm::AbstractTankAlgorithm(int player_index, int tank_index)
-    : playerIndex(player_index), tankIndex(tank_index)
+void AbstractTankAlgorithm::initialize()
 {
     algo = createAlgorithm();
     if (!algo)
@@ -12,7 +11,6 @@ AbstractTankAlgorithm::AbstractTankAlgorithm(int player_index, int tank_index)
     }
 }
 
-AbstractTankAlgorithm::~AbstractTankAlgorithm() = default;
 ActionRequest AbstractTankAlgorithm::getAction()
 {
     ActionRequest action;
@@ -58,7 +56,7 @@ void AbstractTankAlgorithm::updateBattleInfo(BattleInfo &info)
 
     bool firstTime = !board;
 
-    board = move(my_info->getBoard()->dummy_copy());
+    board = my_info->getBoard()->dummy_copy();
 
     if (firstTime)
     {

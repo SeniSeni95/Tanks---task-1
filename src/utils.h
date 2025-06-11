@@ -7,6 +7,7 @@
 #include <string>
 #include "Board.h"
 #include "GameObject.h"
+#include "Vector2D.h"
 
 // Forward declarations
 class game_board;
@@ -17,17 +18,6 @@ class shell;
 class mine;
 class wall;
 
-class Vector2D {
-public:
-    int x, y;
-
-    Vector2D operator+(const Vector2D& other) const;
-    Vector2D operator*(double scalar) const;
-    Vector2D operator-(const Vector2D& other) const;
-
-    // Chebyshev (L∞) norm
-    int chebyshevDistance(const Vector2D& other) const;
-};
 
 // Finds the closest Chebyshev distance between a point and a parametric line
 std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vector2D& lineDir, const Vector2D& point, game_board* board);

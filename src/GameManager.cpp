@@ -117,16 +117,15 @@ std::string actionToString(ActionRequest action) {
 }
 
 ActionRequest stringToAction(string action) {
-    switch (std::hash<std::string>{}(action)) {
-        case std::hash<std::string>{}("fw"): return ActionRequest::MoveForward;
-        case std::hash<std::string>{}("bw"): return ActionRequest::MoveBackward;
-        case std::hash<std::string>{}("r4l"): return ActionRequest::RotateLeft90;
-        case std::hash<std::string>{}("r4r"): return ActionRequest::RotateRight90;
-        case std::hash<std::string>{}("r8l"): return ActionRequest::RotateLeft45;
-        case std::hash<std::string>{}("r8r"): return ActionRequest::RotateRight45;
-        case std::hash<std::string>{}("shoot"): return ActionRequest::Shoot;
-        case std::hash<std::string>{}("skip"): return ActionRequest::DoNothing;
-    }
+    if (action == "fw") return ActionRequest::MoveForward;
+    if (action == "bw") return ActionRequest::MoveBackward;
+    if (action == "r4l") return ActionRequest::RotateLeft90;
+    if (action == "r4r") return ActionRequest::RotateRight90;
+    if (action == "r8l") return ActionRequest::RotateLeft45;
+    if (action == "r8r") return ActionRequest::RotateRight45;
+    if (action == "shoot") return ActionRequest::Shoot;
+    if (action == "update") return ActionRequest::GetBattleInfo; // <-- Add this line
+    if (action == "skip") return ActionRequest::DoNothing;
 
     return ActionRequest::DoNothing;
 }
