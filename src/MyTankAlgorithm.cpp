@@ -4,18 +4,15 @@
 
 
 
-MyTankAlgorithm::MyTankAlgorithm(int player_index, int tank_index) {
-    // You can store or ignore these for now
-}
+MyTankAlgorithm::MyTankAlgorithm(int player_index, int tank_index)
+    : player_index(player_index), tank_index(tank_index), currentInfo(nullptr)
+{}
 
-void MyTankAlgorithm::updateBattleInfo(BattleInfo& info) {
-    // MyBattleInfo* myInfo = dynamic_cast<MyBattleInfo*>(&info);
-    // use myInfo->visibleObjects, etc.
-}
+void MyTankAlgorithm::updateBattleInfo(BattleInfo& /*info*/) { }
 
 ActionRequest MyTankAlgorithm::getAction() {
     std::string input;
-    std::cout << "Enter action (fw, bw, r4l, r4r, r8l, r8r, shoot, skip): ";
+    std::cout << "Enter action (fw, bw, r4l, r4r, r8l, r8r, shoot, skip, update): ";
     std::cin >> input;
 
     if (input == "fw") return ActionRequest::MoveForward;
@@ -26,6 +23,7 @@ ActionRequest MyTankAlgorithm::getAction() {
     if (input == "r8r") return ActionRequest::RotateRight45;
     if (input == "shoot") return ActionRequest::Shoot;
     if (input == "skip") return ActionRequest::DoNothing;
+    if (input == "update") return ActionRequest::GetBattleInfo;
 
     std::cout << "Invalid input. Defaulting to skip." << std::endl;
     return ActionRequest::DoNothing;

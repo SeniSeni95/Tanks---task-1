@@ -115,7 +115,7 @@ string shell::to_string() {
 
 tank::tank(char symbol, int player_number, int tank_number, int directionx, int directiony, cell* curcell, TankAlgorithm* algo)
     : shells(16),
-      player_number(player_number),
+      player_number(player_number+1),
       tank_number(tank_number),
       directionx(directionx),
       directiony(directiony),

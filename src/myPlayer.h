@@ -10,7 +10,8 @@ public:
     : Player(player_index, x, y, max_steps, num_shells) {
     // std::cout << "[DEBUG] MyPlayer constructed" << std::endl;
 }
-    void updateTankWithBattleInfo(TankAlgorithm& tank, SatelliteView& satellite_view) override {
-      
-    }
+    void updateTankWithBattleInfo(TankAlgorithm& /*tank*/, SatelliteView& /*satellite_view*/) override {
+    std::cout << "a tank asked for battleinfo" << std::endl;
+}
 };
+

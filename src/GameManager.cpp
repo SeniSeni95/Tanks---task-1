@@ -75,8 +75,9 @@ void GameManager::readBoard(const std::string& filename) {
             } else if (ch == '1' || ch == '2') {
                 int player_number = (ch == '1') ? 0 : 1;
                 int tank_number = tank_counters[player_number]++;
-                // Default direction: facing right (0,1), adjust as needed
-                auto tank_ptr = std::make_shared<tank>(ch, player_number, tank_number, 0, 1, &current, nullptr);
+                int directiony = (player_number == 0) ? -1 : 1; // Player 1 faces left, Player 2 faces right
+                // Default direction: facing left for player 1, right for player 2
+                auto tank_ptr = std::make_shared<tank>(ch, player_number, tank_number, 0, directiony, &current, nullptr);
                 board->tanks.push_back(tank_ptr);
                 current.add_Object(tank_ptr);
             }
@@ -95,9 +96,9 @@ void GameManager::readBoard(const std::string& filename) {
         tankAlgorithms.push_back(std::move(algo));
     }
 
-    players.resize(2);
-    players[0] = playerFactory->create(0, rows, cols, maxSteps, numShells);
+    players.resize(3);
     players[1] = playerFactory->create(1, rows, cols, maxSteps, numShells);
+    players[2] = playerFactory->create(2, rows, cols, maxSteps, numShells);
 }
 
 std::string actionToString(ActionRequest action) {
@@ -110,6 +111,7 @@ std::string actionToString(ActionRequest action) {
         case ActionRequest::RotateRight45: return "r8r";
         case ActionRequest::Shoot: return "shoot";
         case ActionRequest::DoNothing: return "skip";
+        case ActionRequest::GetBattleInfo: return "update"; // <-- Add this line
         default: return "skip";
     }
 }
@@ -141,7 +143,7 @@ std::string GameManager::askAlgorithm(tank* t) {
     }
     return "skip";
 }
-
+std::string commandStringToEnumName(const std::string& cmd);
 void GameManager::run() {
     const int MAX_SHELL_TIMEOUT = 40;
     const int MAX_GAME_STEPS = 50;
@@ -170,8 +172,23 @@ void GameManager::run() {
 
     std::unordered_set<tank*> killed_tanks;
     int round_counter = 0;
-
     std::unordered_set<tank*> recently_killed; // tanks killed this turn
+
+    // // Helper to print enum as string
+    // auto actionEnumToString = [](ActionRequest action) -> std::string {
+    //     switch (action) {
+    //         case ActionRequest::MoveForward:    return "MoveForward";
+    //         case ActionRequest::MoveBackward:   return "MoveBackward";
+    //         case ActionRequest::RotateLeft90:   return "RotateLeft90";
+    //         case ActionRequest::RotateRight90:  return "RotateRight90";
+    //         case ActionRequest::RotateLeft45:   return "RotateLeft45";
+    //         case ActionRequest::RotateRight45:  return "RotateRight45";
+    //         case ActionRequest::Shoot:          return "Shoot";
+    //         case ActionRequest::GetBattleInfo:  return "GetBattleInfo";
+    //         case ActionRequest::DoNothing:      return "DoNothing";
+    //         default:                            return "Unknown";
+    //     }
+    // };
 
     while (time_out_steps >= 0 && !game_over && round_counter < MAX_GAME_STEPS) {
         satelliteCopyReady = false;
@@ -198,6 +215,7 @@ void GameManager::run() {
 
         board->print_board();
 
+        std::vector<ActionRequest> move_enums(tanks_by_birth.size(), ActionRequest::DoNothing);
         std::vector<std::string> moves(tanks_by_birth.size());
         std::vector<bool> turn_success(tanks_by_birth.size(), false);
 
@@ -206,18 +224,12 @@ void GameManager::run() {
             tank* t = tanks_by_birth[i];
             if (t->alive) {
                 ActionRequest action = t->algo->getAction();
-                moves[i] = actionToString(action);
+                move_enums[i] = action;
+                moves[i] = actionToString(action); // for internal logic
                 turn_success[i] = true;
-                if (action == ActionRequest::GetBattleInfo) {
-                    int player_index = t->player_number;
-                    if (!satelliteCopyReady) {
-                        static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
-                        satelliteCopyReady = true;
-                    }
-                    players[player_index]->updateTankWithBattleInfo(*t->algo, *satview);
-                }
             } else {
                 moves[i] = "killed";
+                move_enums[i] = ActionRequest::DoNothing;
             }
         }
 
@@ -225,6 +237,16 @@ void GameManager::run() {
         for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
             tank* t = tanks_by_birth[i];
             if (t->alive) {
+                if (moves[i] == "update") {
+                    int player_index = t->player_number;
+                    if (!satelliteCopyReady) {
+                        static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
+                        satelliteCopyReady = true;
+                    }
+                    players[player_index]->updateTankWithBattleInfo(*t->algo, *satview);
+                    // Do NOT allow another move for this tank this turn
+                    continue;
+                }
                 bool ok = t->turn(board.get(), moves[i]);
                 if (!ok) {
                     moves[i] += " (ignored)";
@@ -250,7 +272,31 @@ void GameManager::run() {
             }
         }
 
-        game_output << join(moves, ", ") << std::endl;
+        // Output using enum names
+        std::vector<std::string> move_names;
+        for (size_t i = 0; i < moves.size(); ++i) {
+            tank* t = tanks_by_birth[i];
+            if (!t->alive) {
+                // If it just died this turn, moves[i] already has " (killed)" appended
+                if (moves[i].find("(killed)") != std::string::npos) {
+                    auto pos = moves[i].find(" (killed)");
+                    std::string cmd = moves[i].substr(0, pos);
+                    std::string out = commandStringToEnumName(cmd);
+                    if (moves[i].find("(ignored)") != std::string::npos)
+                        out += " (ignored)";
+                    out += " (killed)";
+                    move_names.push_back(out);
+                } else {
+                    move_names.push_back("killed");
+                }
+            } else {
+                std::string out = commandStringToEnumName(moves[i]);
+                if (moves[i].find("ignored") != std::string::npos)
+                    out += " (ignored)";
+                move_names.push_back(out);
+            }
+        }
+        game_output << join(move_names, ", ") << std::endl;
         ++round_counter;
     }
 
@@ -276,4 +322,17 @@ void GameManager::run() {
 
     game_output << final_line << std::endl;
     game_output.close();
+}
+
+std::string commandStringToEnumName(const std::string& cmd) {
+    if (cmd.find("fw") == 0) return "MoveForward";
+    if (cmd.find("bw") == 0) return "MoveBackward";
+    if (cmd.find("r4l") == 0) return "RotateLeft90";
+    if (cmd.find("r4r") == 0) return "RotateRight90";
+    if (cmd.find("r8l") == 0) return "RotateLeft45";
+    if (cmd.find("r8r") == 0) return "RotateRight45";
+    if (cmd.find("shoot") == 0) return "Shoot";
+    if (cmd.find("update") == 0) return "GetBattleInfo";
+    if (cmd.find("skip") == 0) return "DoNothing";
+    return cmd; // fallback for "killed" or unknown
 }

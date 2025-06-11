@@ -1,6 +1,16 @@
-fw (killed), fw (killed), skip, r4r
-killed, killed, skip, skip
-killed, killed, skip, r4r
-killed, killed, shoot, shoot
-killed, killed, skip, skip
-killed, killed, skip, skip
+MoveBackward, MoveForward (killed), RotateRight90, RotateRight90
+DoNothing, killed, RotateRight90, RotateRight90
+DoNothing (killed), killed, Shoot, Shoot
+killed, killed, DoNothing, DoNothing
+killed, killed, RotateRight90, RotateRight90
+killed, killed, RotateRight90, RotateRight90
+killed, killed, Shoot, Shoot
+killed, killed, DoNothing, DoNothing
+killed, killed, DoNothing, DoNothing
+killed, killed, RotateRight90, DoNothing
+killed, killed, RotateRight90, DoNothing
+killed, killed, DoNothing, DoNothing
+killed, killed, Shoot, Shoot
+killed, killed, DoNothing, DoNothing
+killed, killed, DoNothing (killed), DoNothing (killed)
+Tie, both players have zero tanks

@@ -21,40 +21,7 @@ int main() {
     }
     auto board = std::make_unique<game_board>(rows, cols, std::move(arr));
 
-    // Place a tank at (2,2)
-    auto tank_ptr = std::make_shared<tank>('T', 0, 0, 0, 1, &board->arr[2][2], nullptr);
-    tank_ptr->set_x(2);
-    tank_ptr->set_y(2);
-    tank_ptr->gear = "forward";
-    board->arr[2][2].add_Object(tank_ptr);
-    board->tanks.push_back(tank_ptr);
-
-    // Debug: Check if (2,2) has objects
-    std::cout << "Debug: cell (2,2) objects count: " << board->arr[2][2].objects.size() << std::endl;
-    if (!board->arr[2][2].objects.empty()) {
-        std::cout << "Debug: cell (2,2) first object symbol: " << board->arr[2][2].objects[0]->get_symbol() << std::endl;
-    }
-
-    // Place a shell at (1,2)
-    auto shell_ptr = std::make_shared<shell>(&board->arr[1][2], 1, 0);
-    board->arr[1][2].add_Object(shell_ptr);
-    board->shells.push_back(shell_ptr);
-
-    // Debug: Check if (1,2) has objects
-    std::cout << "Debug: cell (1,2) objects count: " << board->arr[1][2].objects.size() << std::endl;
-    if (!board->arr[1][2].objects.empty()) {
-        std::cout << "Debug: cell (1,2) first object symbol: " << board->arr[1][2].objects[0]->get_symbol() << std::endl;
-    }
-
-    // SatelliteViewImpl setup
-    SatelliteViewImpl satview;
-    satview.updateCopy(*board);
-
-    // Print the board state before simulation
-    std::cout << "Board before simulate_step:\n";
-    board->print_board();
-
-    // Prepare simulate_step parameters
+    // Prepare shell and tank data
     std::vector<std::tuple<int, int, int, int>> shell_data = {
         std::make_tuple(1, 2, 1, 0) // shell at (1,2) moving down
     };
@@ -62,17 +29,24 @@ int main() {
         std::make_tuple(2, 2, 0, 1, "forward") // tank at (2,2) facing right
     };
 
+    // Generate the board with the objects
+    auto sim_board = SatelliteViewImpl::generate_board(*board, shell_data, tank_data);
+
+    // Print the board state before simulation
+    std::cout << "Board before simulate_step:\n";
+    sim_board->print_board();
+
     // User input for action
     std::string action;
     std::cout << "Enter action for the tank (e.g., fw, bw, shoot, r4r, r4l, r8r, r8l): ";
     std::cin >> action;
 
-    // Simulate a step
-    auto new_satview = satview.simulate_step(shell_data, tank_data, action);
+    // Simulate a step for the tank at (2,2)
+    SatelliteViewImpl::simulate_step(*sim_board, std::make_tuple(2, 2, action));
 
     // Print the board state after simulation
     std::cout << "Board after simulate_step:\n";
-   new_satview->print_board();
+    sim_board->print_board();
 
     return 0;
 }

@@ -38,9 +38,10 @@ public:
         if (boardCopy) boardCopy->print_board();
     }
 
-    game_board generate_board(
+    std::unique_ptr<SatelliteViewImpl> simulate_step(
         const std::vector<std::tuple<int, int, int, int>>& shell_data,
-        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
+        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data,
+        const std::string& action
     ) const;
 };
 
