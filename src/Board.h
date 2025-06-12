@@ -8,6 +8,7 @@
 #include <string>
 #include "GameObject.h"
 #include <unordered_set>
+#include "SatelliteView.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -83,9 +84,10 @@ public:
     void remove_shell(game_object* s);
 
     static std::unique_ptr<game_board> generate_board(
-        const game_board& base_board,
-        const std::vector<std::tuple<int, int, int, int>>& shell_data,
-        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
+    const SatelliteView& view,
+    int n, int m,
+    const std::vector<std::tuple<int, int, int, int>>& shell_data,
+    const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
     );
     void simulate_step(const std::tuple<int, int, std::string>& tank_command);
     

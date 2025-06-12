@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <unordered_set>
+#include "GameObject.h"
+#include "SatelliteView.h"
 
 // --------------------
 // cell methods
@@ -346,58 +348,91 @@ int game_board::countAliveTanksForPlayer(char symbol) const {
 }
 
 std::unique_ptr<game_board> game_board::generate_board(
-    const game_board& base_board,
+    const SatelliteView& view,
+    int n,
+    int m,
     const std::vector<std::tuple<int, int, int, int>>& shell_data,
     const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
 ) {
-    auto new_board = std::unique_ptr<game_board>(base_board.dummy_copy());
-
-    // Place/update shells
-    for (const auto& shell_info : shell_data) {
-        int x, y, dirx, diry;
-        std::tie(x, y, dirx, diry) = shell_info;
-        bool found = false;
-        for (auto& s_ptr : new_board->shells) {
-            shell* s = s_ptr.get();
-            if (s->get_x() == x && s->get_y() == y) {
-                s->directionx = dirx;
-                s->directiony = diry;
-                s->shell_symbol = "*";
-                found = true;
-                break;
-            }
+    std::vector<std::vector<cell>> arr;
+    arr.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        std::vector<cell> row;
+        row.reserve(m);
+        for (int j = 0; j < m; ++j) {
+            row.emplace_back(i, j);
         }
-        if (!found) {
-            auto s_copy = std::make_shared<shell>(&new_board->arr[x][y], dirx, diry);
-            s_copy->shell_symbol = "*";
-            new_board->arr[x][y].add_Object(s_copy);
-            new_board->shells.push_back(s_copy);
-        }
+        arr.push_back(std::move(row));
     }
 
-    // Place/update tanks
-    for (const auto& tup : tank_data) {
-        int x, y, dirx, diry;
-        std::string gear;
-        std::tie(x, y, dirx, diry, gear) = tup;
-        tank* found_tank = nullptr;
-        for (auto& t_ptr : new_board->tanks) {
-            tank* t = t_ptr.get();
-            if (t->get_x() == x && t->get_y() == y) {
-                t->directionx = dirx;
-                t->directiony = diry;
-                t->gear = gear;
-                found_tank = t;
-                break;
+    auto new_board = std::make_unique<game_board>(n, m, std::move(arr));
+    std::vector<int> tank_counters(2, 0); // count tanks per player
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            char ch = view.getObjectAt(i, j);
+            cell& current = new_board->arr[i][j];
+
+            switch (ch) {
+                case '#':
+                    current.add_Object(std::make_shared<wall>('w', &current));
+                    break;
+                case '@':
+                    current.add_Object(std::make_shared<mine>('@', &current));
+                    break;
+                case '*': {
+                    // Find matching shell data
+                    auto it = std::find_if(shell_data.begin(), shell_data.end(),
+                        [i, j](const auto& t) {
+                            return std::get<0>(t) == i && std::get<1>(t) == j;
+                        });
+
+                    int dx = 0, dy = 0;
+                    if (it != shell_data.end()) {
+                        dx = std::get<2>(*it);
+                        dy = std::get<3>(*it);
+                    }
+
+                    auto s_ptr = std::make_shared<shell>(&current, dx, dy);
+                    s_ptr->shell_symbol = "*";
+                    new_board->shells.push_back(s_ptr);
+                    current.add_Object(s_ptr);
+                    break;
+                }
+                case '1':
+                case '2': {
+                    int player_index = (ch == '1') ? 0 : 1;
+                    int tank_number = tank_counters[player_index]++;
+
+                    // Find matching tank data
+                    auto it = std::find_if(tank_data.begin(), tank_data.end(),
+                        [i, j](const auto& t) {
+                            return std::get<0>(t) == i && std::get<1>(t) == j;
+                        });
+
+                    int dx = 0, dy = (player_index == 0 ? -1 : 1);
+                    std::string gear = "forward";
+
+                    if (it != tank_data.end()) {
+                        dx = std::get<2>(*it);
+                        dy = std::get<3>(*it);
+                        gear = std::get<4>(*it);
+                    }
+
+                    auto t_ptr = std::make_shared<tank>(
+                        ch, player_index, tank_number,
+                        dx, dy, &current, nullptr
+                    );
+                    t_ptr->set_x(i);
+                    t_ptr->set_y(j);
+                    t_ptr->gear = gear;
+                    new_board->tanks.push_back(t_ptr);
+                    current.add_Object(t_ptr);
+                    break;
+                }
+                default:
+                    break;
             }
-        }
-        if (!found_tank) {
-            auto t_copy = std::make_shared<tank>('1', 0, 0, dirx, diry, &new_board->arr[x][y], nullptr);
-            t_copy->set_x(x);
-            t_copy->set_y(y);
-            t_copy->gear = gear;
-            new_board->arr[x][y].add_Object(t_copy);
-            new_board->tanks.push_back(t_copy);
         }
     }
 
