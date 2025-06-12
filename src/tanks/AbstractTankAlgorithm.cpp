@@ -36,18 +36,10 @@ ActionRequest AbstractTankAlgorithm::getAction()
     {
         stepsSinceBoardUpdate++;
 
-
-        cout << "Before" << endl;
-        board->print_board();
-
         board->simulate_step(make_tuple(
             selfTank->get_x(),
             selfTank->get_y(),
             actionToString(action)));
-
-        cout << "After" << endl;
-        board->print_board();
-        cout << "Action: " << actionToString(action) << endl;
         
         // Update the self tank's position after the action
         for (auto &t : board->tanks)
@@ -90,6 +82,24 @@ void AbstractTankAlgorithm::updateBattleInfo(BattleInfo &info)
             {
                 selfTank = t;
                 break;
+            }
+        }
+    } else {
+        // Update board tank according to the self tank's position
+        if (selfTank)
+        {
+            for (auto &t : board->tanks)
+            {
+                if (t->player_number == playerIndex && t->tank_number == tankIndex)
+                {
+                    t->set_x(selfTank->get_x());
+                    t->set_y(selfTank->get_y());
+                    t->directionx = selfTank->directionx;
+                    t->directiony = selfTank->directiony;
+                    t->gear = selfTank->gear;
+                    selfTank = t;
+                    break;
+                }
             }
         }
     }

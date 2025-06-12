@@ -31,22 +31,4 @@ public:
     void setSelfTank(tuple<int, int, int, int, string> t) {
         selfTank = t;
     }
-
-    void updateTankDirectionAndGear(int x, int y, int direction_x, int direction_y, const string &gear) {
-        if (x < 0 || x >= board->n || y < 0 || y >= board->m) {
-            throw out_of_range("Coordinates out of bounds");
-        }
-
-        cell &c = board->get_cell(x, y);
-        for (const auto &obj : c.objects) {
-            tank *t = dynamic_cast<tank *>(obj.get());
-            if (t) {
-                t->directionx = direction_x;
-                t->directiony = direction_y;
-                t->gear = gear;
-                return;
-            }
-        }
-        throw runtime_error("No tank found at the specified coordinates");
-    }
 };

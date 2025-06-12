@@ -107,19 +107,29 @@ void AbstractPlayer::updateBoard(SatelliteView &view)
                 {
                     Vector2D tank_pos = {closest_tank->get_x(), closest_tank->get_y()};
                     Vector2D direction = target_pos - tank_pos;
-                    int direction_x = 0, direction_y = 0;
-                    if (direction.x > 0)
-                        direction_x = 1;
-                    else if (direction.x < 0)
-                        direction_x = -1;
-                    if (direction.y > 0)
-                        direction_y = 1;
-                    else if (direction.y < 0)
-                        direction_y = -1;
-                    string gear = "forward"; // Default gear, we don't predict gears.
+                    if (direction.x == 0 && direction.y == 0)
+                    {
+                        tank_data.push_back(make_tuple(
+                            closest_tank->get_x(),
+                            closest_tank->get_y(),
+                            closest_tank->directionx,
+                            closest_tank->directiony,
+                            closest_tank->gear));
+                    } else {
+                        int direction_x = 0, direction_y = 0;
+                        if (direction.x > 0)
+                            direction_x = 1;
+                        else if (direction.x < 0)
+                            direction_x = -1;
+                        if (direction.y > 0)
+                            direction_y = 1;
+                        else if (direction.y < 0)
+                            direction_y = -1;
+                        string gear = "forward"; // Default gear, we don't predict gears.
 
-                    tank_data.push_back(make_tuple(
-                        x, y, direction_x, direction_y, gear));
+                        tank_data.push_back(make_tuple(
+                            x, y, direction_x, direction_y, gear));
+                    }
                 }
             }
             else if (symbol == '*')
