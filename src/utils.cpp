@@ -53,7 +53,7 @@ std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vec
 
 std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction) {
     // Calculate the angle in radians
-    double degree = atan2(directiony, directionx) * (180.0 / M_PI); // Convert radians to degrees
+    double degree = atan2(directionx, directiony) * (180.0 / M_PI); // Convert radians to degrees
     if (direction == "left") {
         degree += 90;
     } else if (direction == "right") {
@@ -76,7 +76,7 @@ std::pair<int, int> rotate_4(int directionx, int directiony, std::string directi
 
 std::pair<int, int> rotate_8(int directionx, int directiony, std::string direction) {
     // Calculate the angle in radians
-    double degree = atan2(directiony, directionx) * (180.0 / M_PI); // Convert radians to degrees
+    double degree = atan2(directionx, directiony) * (180.0 / M_PI); // Convert radians to degrees
     if (direction == "left") {
         degree += 45;
     } else if (direction == "right") {

@@ -354,7 +354,7 @@ int game_board::countAliveTanksForPlayer(char symbol) const {
 }
 
 std::unique_ptr<game_board> game_board::generate_board(
-    const SatelliteView& view,
+    SatelliteView &view,
     int n,
     int m,
     const std::vector<std::tuple<int, int, int, int>>& shell_data,

@@ -38,19 +38,13 @@ AbstractPlayer::AbstractPlayer(int player_index, size_t x, size_t y,
 
 void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteView &satellite_view)
 {
-    SatelliteViewImpl *view = dynamic_cast<SatelliteViewImpl *>(&satellite_view);
-    if (!view)
-    {
-        throw std::runtime_error("SatelliteView is not of type SatelliteViewImpl");
-    }
-
     if (!boardInitialized)
     {
-        initBoard(view);
+        initBoard(satellite_view);
     }
     else
     {
-        updateBoard(view);
+        updateBoard(satellite_view);
     }
 
     // Clone board
@@ -93,7 +87,7 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
  * Position updates are done on a closest-to basis.
  * Direction updates are done based on the direction between the previous position and the current one (rounded to 8 directions).
  */
-void AbstractPlayer::updateBoard(const SatelliteViewImpl *view)
+void AbstractPlayer::updateBoard(SatelliteView &view)
 {
     // Update tanks and shells based on the satellite view
     vector<tuple<int, int, int, int, string>> tank_data;
@@ -104,7 +98,7 @@ void AbstractPlayer::updateBoard(const SatelliteViewImpl *view)
         {
             Vector2D target_pos = {x, y};
 
-            char symbol = view->getObjectAt(x, y);
+            char symbol = view.getObjectAt(x, y);
             char real_symbol = isTank(symbol, player_index);
             if (real_symbol)
             {
@@ -142,7 +136,7 @@ void AbstractPlayer::updateBoard(const SatelliteViewImpl *view)
     }
 
     // Update the board with the new tank and shell data
-    board = game_board::generate_board(*view, width, height, shell_data, tank_data);
+    board = game_board::generate_board(view, width, height, shell_data, tank_data);
 }
 
 /**
@@ -239,13 +233,13 @@ shell *AbstractPlayer::findClosestShell(Vector2D target_pos)
 /**
  * Initialize the game board with initial tank data from the satellite view.
  */
-void AbstractPlayer::initBoard(const SatelliteViewImpl *view)
+void AbstractPlayer::initBoard(SatelliteView &view)
 {
     // Get initial tank data from the satellite view
     vector<tuple<int, int, int, int, string>> tank_data = initialParseSatView(view);
 
     board = game_board::generate_board(
-        *view,
+        view,
         width,
         height,
         std::vector<std::tuple<int, int, int, int>>(), // No shells initially
@@ -257,7 +251,7 @@ void AbstractPlayer::initBoard(const SatelliteViewImpl *view)
 /**
  * Parse tanks from the initial satellite view.
  */
-vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(const SatelliteViewImpl *view)
+vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(SatelliteView &view)
 {
     vector<tuple<int, int, int, int, string>> tank_data;
     // Iterate through the view to find all the items
@@ -265,7 +259,7 @@ vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(co
     {
         for (size_t y = 0; y < height; ++y)
         {
-            char symbol = view->getObjectAt(x, y);
+            char symbol = view.getObjectAt(x, y);
             if (isTank(symbol, player_index))
             {
                 tank_data.push_back(initTank(view, x, y));
@@ -276,9 +270,9 @@ vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(co
     return tank_data;
 }
 
-tuple<int, int, int, int, string> AbstractPlayer::initTank(const SatelliteViewImpl *view, int x, int y)
+tuple<int, int, int, int, string> AbstractPlayer::initTank(SatelliteView &view, int x, int y)
 {
-    char symbol = view->getObjectAt(x, y);
+    char symbol = view.getObjectAt(x, y);
 
     int tank_player;
     if (isAllyTank(symbol, player_index))

@@ -218,7 +218,7 @@ double shell_avoidance_algorithm::base_score(game_board* board_copy, shared_ptr<
 
     // Score based on steps since the last board update
     if (stepsSinceBoardUpdate > 3) {
-        score -= stepsSinceBoardUpdate * 10; // Penalize for not updating the board frequently
+        score -= stepsSinceBoardUpdate * 2; // Penalize for not updating the board frequently
     }
 
     if (score == DEATH) {
@@ -269,8 +269,8 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
 
                     if (board->get_cell(new_x, new_y).has_Object()) {
                         game_object* obj = board->get_cell(new_x, new_y).get_Object();
-                        if (obj->get_symbol() == '#' || obj->get_symbol()== '@') {
-                            continue; // Skip walls and mines
+                        if (obj->get_symbol() != '*' || (new_x = end.x && new_y == end.y)) { // Allow everything on the target position
+                            continue; // Skip everything except shells (they move so don't block the path)
                         }
                     }
 
@@ -281,7 +281,7 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
         }
     }
 
-    return std::numeric_limits<int>::max(); // No path found
+    return 100; // No path found
 }
 
 running_algorithm::running_algorithm() : shell_avoidance_algorithm() {}
@@ -319,7 +319,7 @@ double chasing_algorithm::score_position(game_board* board_copy, shared_ptr<tank
     }
 
     for (auto& t : board_copy->tanks) {
-        if (t->player_number != self_copy->player_number) {
+        if (t->player_number != self_copy->player_number && t->alive) {
             Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
             Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
 

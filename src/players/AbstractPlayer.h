@@ -41,7 +41,7 @@ public:
      * Position updates are done on a closest-to basis.
      * Direction updates are done based on the direction between the previous position and the current one (rounded to 8 directions).
      */
-    void updateBoard(const SatelliteViewImpl *view);
+    void updateBoard(SatelliteView &view);
 
     /**
      * Find the closest tank to a given position with a specific symbol.
@@ -57,12 +57,12 @@ public:
     /**
      * Initialize the game board with initial tank data from the satellite view.
      */
-    void initBoard(const SatelliteViewImpl *view);
+    void initBoard(SatelliteView &view);
 
     /**
      * Parse tanks from the initial satellite view.
      */
-    vector<tuple<int, int, int, int, string>> initialParseSatView(const SatelliteViewImpl *view);
+    vector<tuple<int, int, int, int, string>> initialParseSatView(SatelliteView &view);
 
-    virtual tuple<int, int, int, int, string> initTank(const SatelliteViewImpl *view, int x, int y);
+    virtual tuple<int, int, int, int, string> initTank(SatelliteView &view, int x, int y);
 };

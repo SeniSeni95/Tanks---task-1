@@ -151,7 +151,7 @@ void tank::move_backwards(game_board& board) {
     int new_y = (y - directiony + board.m) % board.m;
     cell* newcell = &board.get_cell(new_x, new_y);
 
-    if (newcell->has_Object() && newcell->get_Object()->get_symbol() != '#') {
+    if (!newcell->has_Object() || newcell->get_Object()->get_symbol() != '#') {
         curcell->remove_Object(this);
         curcell = newcell;
         x = new_x;

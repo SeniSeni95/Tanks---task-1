@@ -86,7 +86,7 @@ public:
     void remove_shell(game_object* s);
 
     static std::unique_ptr<game_board> generate_board(
-    const SatelliteView& view,
+    SatelliteView &view,
     int n, int m,
     const std::vector<std::tuple<int, int, int, int>>& shell_data,
     const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
