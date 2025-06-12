@@ -25,7 +25,7 @@ game_object* cell::get_Object() {
 }
 
 void cell::add_Object(std::shared_ptr<game_object> obj) {
-    objects.push_back(std::move(obj));
+    objects.push_back(obj);
 }
 
 void cell::remove_Object(game_object* obj) {
@@ -54,6 +54,10 @@ void cell::print() {
 
 game_board::game_board(int n, int m, std::vector<std::vector<cell>> arr)
     : n(n), m(m), arr(std::move(arr)) {}
+
+cell& game_board::get_cell(int x, int y) {
+    return arr[x][y];
+}
 
 void game_board::add_tank(std::shared_ptr<tank> t) {
     tanks.push_back(std::move(t));
@@ -84,9 +88,9 @@ void game_board::print_board() {
     // std::cout << "[DEBUG] Entered game_board::print_board()" << std::endl;
     // std::cout << "[DEBUG] Board dimensions: n = " << n << ", m = " << m << std::endl;
     try {
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                arr[i][j].print();
+        for (int j = 0; j < m; ++j) {
+            for (int i = 0; i < n; ++i) {
+                get_cell(i, j).print();
             }
             std::cout << std::endl;
         }
@@ -109,10 +113,10 @@ std::string game_board::get_board_state() {
     std::string state;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
-            if (arr[i][j].has_Object()) {
-                game_object* obj = arr[i][j].get_Object();
+            if (get_cell(i, j).has_Object()) {
+                game_object* obj = get_cell(i, j).get_Object();
                 state += obj->get_symbol();
-                if (obj->get_symbol() == 'w') {
+                if (obj->get_symbol() == '#') {
                     wall* w = dynamic_cast<wall*>(obj);
                     state += std::to_string(w->hp);
                 }
@@ -136,13 +140,13 @@ std::string game_board::get_board_state() {
 std::unique_ptr<game_board> game_board::dummy_copy() const {
     std::vector<std::vector<cell>> arr_copy;
     arr_copy.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        std::vector<cell> row;
-        row.reserve(m);
-        for (int j = 0; j < m; ++j) {
-            row.emplace_back(i, j);
+    for (int j = 0; j < n; ++j) {
+        std::vector<cell> col;
+        col.reserve(m);
+        for (int i = 0; i < m; ++i) {
+            col.emplace_back(i, j);
         }
-        arr_copy.push_back(std::move(row));
+        arr_copy.push_back(std::move(col));
     }
 
     auto new_board = std::make_unique<game_board>(n, m, std::move(arr_copy));
@@ -150,23 +154,25 @@ std::unique_ptr<game_board> game_board::dummy_copy() const {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             const auto& src_cell = arr[i][j];
-            auto& dst_cell = new_board->arr[i][j];
+            auto& dst_cell = new_board->get_cell(i, j);
 
             for (const auto& obj_ptr : src_cell.objects) {
                 if (auto t = dynamic_cast<tank*>(obj_ptr.get())) {
                     auto t_copy = std::make_shared<tank>(
                         t->symbol, t->player_number, t->tank_number,
-                        0, 0, &dst_cell, nullptr // directionx/y set to 0
+                        t->directionx, t->directiony, &dst_cell, nullptr
                     );
                     t_copy->shells = t->shells;
                     t_copy->shot_timer = t->shot_timer;
                     t_copy->cannon_symbol = t->cannon_symbol;
                     t_copy->gear = t->gear;
                     t_copy->alive = t->alive;
+                    t_copy->set_x(t->get_x());
+                    t_copy->set_y(t->get_y());
                     dst_cell.add_Object(t_copy);
                     new_board->tanks.push_back(t_copy);
                 } else if (auto s = dynamic_cast<shell*>(obj_ptr.get())) {
-                    auto s_copy = std::make_shared<shell>(&dst_cell, 0, 0); // directionx/y set to 0
+                    auto s_copy = std::make_shared<shell>(&dst_cell, s->directionx, s->directiony);
                     s_copy->shell_symbol = "*"; // set symbol to star
                     s_copy->just_created = s->just_created;
                     dst_cell.add_Object(s_copy);
@@ -356,13 +362,13 @@ std::unique_ptr<game_board> game_board::generate_board(
 ) {
     std::vector<std::vector<cell>> arr;
     arr.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        std::vector<cell> row;
-        row.reserve(m);
-        for (int j = 0; j < m; ++j) {
-            row.emplace_back(i, j);
+    for (int j = 0; j < n; ++j) {
+        std::vector<cell> col;
+        col.reserve(m);
+        for (int i = 0; i < m; ++i) {
+            col.emplace_back(i, j);
         }
-        arr.push_back(std::move(row));
+        arr.push_back(std::move(col));
     }
 
     auto new_board = std::make_unique<game_board>(n, m, std::move(arr));
@@ -371,11 +377,11 @@ std::unique_ptr<game_board> game_board::generate_board(
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             char ch = view.getObjectAt(i, j);
-            cell& current = new_board->arr[i][j];
+            cell& current = new_board->get_cell(i, j);
 
             switch (ch) {
                 case '#':
-                    current.add_Object(std::make_shared<wall>('w', &current));
+                    current.add_Object(std::make_shared<wall>('#', &current));
                     break;
                 case '@':
                     current.add_Object(std::make_shared<mine>('@', &current));
@@ -396,7 +402,7 @@ std::unique_ptr<game_board> game_board::generate_board(
                     auto s_ptr = std::make_shared<shell>(&current, dx, dy);
                     s_ptr->shell_symbol = "*";
                     new_board->shells.push_back(s_ptr);
-                    current.add_Object(s_ptr);
+                    current.add_Object(std::move(s_ptr));
                     break;
                 }
                 case '1':
@@ -410,7 +416,7 @@ std::unique_ptr<game_board> game_board::generate_board(
                             return std::get<0>(t) == i && std::get<1>(t) == j;
                         });
 
-                    int dx = 0, dy = (player_index == 0 ? -1 : 1);
+                    int dx = (player_index == 0 ? -1 : 1), dy = 0;
                     std::string gear = "forward";
 
                     if (it != tank_data.end()) {
@@ -420,7 +426,7 @@ std::unique_ptr<game_board> game_board::generate_board(
                     }
 
                     auto t_ptr = std::make_shared<tank>(
-                        ch, player_index, tank_number,
+                        ch, player_index+1, tank_number,
                         dx, dy, &current, nullptr
                     );
                     t_ptr->set_x(i);
@@ -456,23 +462,7 @@ void game_board::simulate_step(const std::tuple<int, int, std::string>& tank_com
 
     // Simulate the action for the target tank
     if (target_tank) {
-        if (action == "fw") {
-            target_tank->gear = "forward";
-            target_tank->move_forward(*this);
-        } else if (action == "bw") {
-            target_tank->gear = "backward";
-            target_tank->move_backwards(*this);
-        } else if (action == "shoot") {
-            target_tank->shoot(this);
-        } else if (action == "r4r") {
-            target_tank->rotate_4("right");
-        } else if (action == "r4l") {
-            target_tank->rotate_4("left");
-        } else if (action == "r8r") {
-            target_tank->rotate_8("right");
-        } else if (action == "r8l") {
-            target_tank->rotate_8("left");
-        }
+        target_tank->turn(this, action);
     }
 
     // Advance the board state

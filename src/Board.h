@@ -76,6 +76,8 @@ public:
 
     game_board(int n, int m, std::vector<std::vector<cell>> arr);
 
+    cell& get_cell(int x, int y);
+
     void add_tank(std::shared_ptr<tank> t);
     void remove_tank(game_object* t);
 

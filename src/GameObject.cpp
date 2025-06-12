@@ -67,7 +67,7 @@ void shell::shell_move_forward(game_board& board) {
     x = (x + directionx + board.n) % board.n;
     y = (y + directiony + board.m) % board.m;
 
-    curcell = &board.arr[x][y];
+    curcell = &board.get_cell(x, y);
     curcell->add_Object(board.get_shared_shell(this));
 
     // If it's just been created, don't trigger collision yet
@@ -81,7 +81,7 @@ void shell::shell_move_forward(game_board& board) {
         std::find(board.collisions.begin(), board.collisions.end(), curcell) == board.collisions.end()) {
         for (const auto& ptr : curcell->objects) {
             game_object* obj = ptr.get();
-            if ((obj->get_symbol() == 'w' || obj->get_symbol() == '1' || obj->get_symbol() == '2' ||
+            if ((obj->get_symbol() == '#' || obj->get_symbol() == '1' || obj->get_symbol() == '2' ||
                  (dynamic_cast<shell*>(obj) && obj != this))) {
                 board.collisions.push_back(curcell);
                 break;
@@ -92,7 +92,7 @@ void shell::shell_move_forward(game_board& board) {
 
 void shell::set_shell_symbol() {
     const double TOLERANCE = 1e-6;
-    double degree = atan2(-directionx, directiony) * (180.0 / M_PI);
+    double degree = atan2(-directiony, directionx) * (180.0 / M_PI);
     if (degree < 0) degree += 360;
 
     if (fabs(degree - 0) < TOLERANCE) shell_symbol = "→";
@@ -115,7 +115,7 @@ string shell::to_string() {
 
 tank::tank(char symbol, int player_number, int tank_number, int directionx, int directiony, cell* curcell, TankAlgorithm* algo)
     : shells(16),
-      player_number(player_number+1),
+      player_number(player_number),
       tank_number(tank_number),
       directionx(directionx),
       directiony(directiony),
@@ -138,7 +138,7 @@ void tank::move_forward(game_board& board) {
     curcell->remove_Object(this);
     x = (x + directionx + board.n) % board.n;
     y = (y + directiony + board.m) % board.m;
-    curcell = &board.arr[x][y];
+    curcell = &board.get_cell(x, y);
     curcell->add_Object(shared_from_this());
 
     if (curcell->objects.size() > 1) {
@@ -149,9 +149,9 @@ void tank::move_forward(game_board& board) {
 void tank::move_backwards(game_board& board) {
     int new_x = (x - directionx + board.n) % board.n;
     int new_y = (y - directiony + board.m) % board.m;
-    cell* newcell = &board.arr[new_x][new_y];
+    cell* newcell = &board.get_cell(new_x, new_y);
 
-    if (newcell->has_Object() && newcell->get_Object()->get_symbol() != 'w') {
+    if (newcell->has_Object() && newcell->get_Object()->get_symbol() != '#') {
         curcell->remove_Object(this);
         curcell = newcell;
         x = new_x;
@@ -184,7 +184,7 @@ void tank::shoot(game_board* board) {
     if (shells > 0) {
         shells--;
         shot_timer = 4;
-        cell* curcell = &board->arr[x][y];
+        cell* curcell = &board->get_cell(x, y);
 
         auto s = std::make_shared<shell>(curcell, directionx, directiony);
         curcell->add_Object(s);
@@ -240,13 +240,13 @@ bool tank::handle_move(game_board* board, const string& move) {
 
 bool tank::wall_coll_check(cell* dest) {
     if (dest->has_Object()) {
-        return dest->get_Object()->get_symbol() == 'w';
+        return dest->get_Object()->get_symbol() == '#';
     }
     return false;
 }
 
 void tank::set_cannon_symbol() {
-    double degree = atan2(-directionx, directiony) * (180.0 / M_PI);
+    double degree = atan2(-directiony, directionx) * (180.0 / M_PI);
     if (degree < 0) degree += 360;
     if (degree == 0) cannon_symbol = "→";
     else if (degree == 90) cannon_symbol = "↑";

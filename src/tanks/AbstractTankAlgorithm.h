@@ -16,7 +16,7 @@ protected:
     unique_ptr<algorithm> algo; // Pointer to the algorithm used by this tank
 
     unique_ptr<game_board> board; // Pointer to the game board
-    unique_ptr<tank> selfTank = nullptr; // Pointer to the self tank
+    shared_ptr<tank> selfTank = nullptr; // Pointer to the self tank
 public:
     AbstractTankAlgorithm(int player_index, int tank_index);
     virtual ~AbstractTankAlgorithm() = default;

@@ -3,7 +3,7 @@
 
 algorithm::algorithm() {}
 
-void algorithm::other_tanks_turn(game_board* board, tank* self) {
+void algorithm::other_tanks_turn(game_board* board, shared_ptr<tank> self) {
     for (auto& t : board->tanks) {
         if (t->symbol != self->symbol) {
             t->turn(board, "shoot"); // Assume everyone else tries to kill us
@@ -11,7 +11,7 @@ void algorithm::other_tanks_turn(game_board* board, tank* self) {
     }
 }
 
-void algorithm::do_move(game_board* board, tank* self, const std::string& move) {    
+void algorithm::do_move(game_board* board, shared_ptr<tank> self, const std::string& move) {    
     board->simulate_step(std::make_tuple(
         self->get_x(),
         self->get_y(),
@@ -19,58 +19,60 @@ void algorithm::do_move(game_board* board, tank* self, const std::string& move) 
     ));
 }
 
-double algorithm::score_single_move(game_board* board, tank* self, const std::string& move, int lookahead) {
+double algorithm::score_single_move(game_board* board, shared_ptr<tank> self, const std::string& move, int lookahead, int stepsSinceBoardUpdate) {
     unique_ptr<game_board> board_copy = board->dummy_copy();
-    tank* self_copy = get_self_in_board_copy(board_copy.get(), self);
+    shared_ptr<tank> self_copy = get_self_in_board_copy(board_copy.get(), self);
 
     do_move(board_copy.get(), self_copy, move);
-    double score = base_score(board_copy.get(), self_copy, lookahead);
-
-    board_copy.release();
+    double score = base_score(board_copy.get(), self_copy, lookahead, stepsSinceBoardUpdate);
 
     return score;
 }
 
-double algorithm::score_forward_move(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "fw", lookahead);
+double algorithm::score_forward_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "fw", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_backward_move(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "bw", lookahead);
+double algorithm::score_backward_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "bw", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_rotate_left_quarter(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "r4l", lookahead);
+double algorithm::score_rotate_left_quarter(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "r4l", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_rotate_right_quarter(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "r4r", lookahead);
+double algorithm::score_rotate_right_quarter(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "r4r", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_rotate_left_eighth(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "r8l", lookahead);
+double algorithm::score_rotate_left_eighth(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "r8l", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_rotate_right_eighth(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "r8r", lookahead);
+double algorithm::score_rotate_right_eighth(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "r8r", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_shoot(game_board* board, tank* self, int lookahead) {
+double algorithm::score_shoot(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
     // Check if the tank can shoot
     if (self->shot_timer > 0) {
         return -100000; // Cannot shoot
     }
-    return score_single_move(board, self, "shoot", lookahead);
+    return score_single_move(board, self, "shoot", lookahead, stepsSinceBoardUpdate);
 }
 
-double algorithm::score_skip(game_board* board, tank* self, int lookahead) {
-    return score_single_move(board, self, "skip", lookahead);
+double algorithm::score_skip(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
+    return score_single_move(board, self, "skip", lookahead, stepsSinceBoardUpdate);
 }
 
-tank* algorithm::get_self_in_board_copy(game_board* board_copy, tank* self) {
+double algorithm::score_update_board(game_board* board, shared_ptr<tank> self, int lookahead) {
+    return score_single_move(board, self, "update", lookahead, 0); // Set stepsSinceBoardUpdate to 0 for board update
+}
+
+shared_ptr<tank> algorithm::get_self_in_board_copy(game_board* board_copy, shared_ptr<tank> self) {
     for (auto& t : board_copy->tanks) {
-        if (t->symbol == self->symbol) {
-            return t.get();
+        if (t->player_number == self->player_number && t->tank_number == self->tank_number) {
+            return t;
         }
     }
     std::cout << "Error: Tank not found in board copy!" << std::endl;
@@ -82,11 +84,11 @@ void algorithm::fetch_walls_and_mines(game_board* board) {
     mines.clear();
     for (int i = 0; i < board->n; i++) {
         for (int j = 0; j < board->m; j++) {
-            cell* c = &board->arr[i][j];
+            cell* c = &board->get_cell(i, j);
             if (c->has_Object()) {
-                if (c->get_Object()->get_symbol() == 'w') {
+                if (c->get_Object()->get_symbol() == '#') {
                     walls.push_back(dynamic_cast<wall*>(c->get_Object()));
-                } else if (c->get_Object()->get_symbol() == 'm') {
+                } else if (c->get_Object()->get_symbol() == '@') {
                     mines.push_back(dynamic_cast<mine*>(c->get_Object()));
                 }
             }
@@ -94,19 +96,21 @@ void algorithm::fetch_walls_and_mines(game_board* board) {
     }
 }
 
-std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* self, int lookahead, bool first_call) {
+std::pair<std::string, double> algorithm::decide_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate, bool first_call) {
     string state = board->get_board_state();
 
-    double forward = score_forward_move(board, self, lookahead);
-    double backward = score_backward_move(board, self, lookahead);
-    double rotate_left_quarter = score_rotate_left_quarter(board, self, lookahead);
-    double rotate_right_quarter = score_rotate_right_quarter(board, self, lookahead);
-    double rotate_left_eighth = score_rotate_left_eighth(board, self, lookahead);
-    double rotate_right_eighth = score_rotate_right_eighth(board, self, lookahead);
-    double shoot = score_shoot(board, self, lookahead);
-    double skip = score_skip(board, self, lookahead);
+    double forward = score_forward_move(board, self, lookahead, stepsSinceBoardUpdate);
+    double backward = score_backward_move(board, self, lookahead, stepsSinceBoardUpdate);
+    double rotate_left_quarter = score_rotate_left_quarter(board, self, lookahead, stepsSinceBoardUpdate);
+    double rotate_right_quarter = score_rotate_right_quarter(board, self, lookahead, stepsSinceBoardUpdate);
+    double rotate_left_eighth = score_rotate_left_eighth(board, self, lookahead, stepsSinceBoardUpdate);
+    double rotate_right_eighth = score_rotate_right_eighth(board, self, lookahead, stepsSinceBoardUpdate);
+    double shoot = score_shoot(board, self, lookahead, stepsSinceBoardUpdate);
+    double skip = score_skip(board, self, lookahead, stepsSinceBoardUpdate);
+    double update_board = score_update_board(board, self, lookahead);
 
     if (first_call) {
+        cout << "\nScores for tank " << self->symbol << " at (" << self->get_x() << ", " << self->get_y() << "):" << endl;
         cout << "Forward: " << forward << endl;
         cout << "Backward: " << backward << endl;
         cout << "Rotate left quarter: " << rotate_left_quarter << endl;
@@ -115,32 +119,11 @@ std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* s
         cout << "Rotate right eighth: " << rotate_right_eighth << endl;
         cout << "Shoot: " << shoot << endl;
         cout << "Skip: " << skip << endl;
+        cout << "Update board: " << update_board << endl;
     }
 
     vector<double> scores = {forward, backward, rotate_left_quarter, rotate_right_quarter, rotate_left_eighth, rotate_right_eighth, shoot, skip};
     double max_score = *std::max_element(scores.begin(), scores.end());
-
-    if (first_call && false) {
-        if (board_states.find(state) != board_states.end()) {
-            cout << "State already seen: " << endl;
-            // Choose 2nd best move if the state has already been seen (we're in a loop)
-            scores.erase(std::remove(scores.begin(), scores.end(), max_score), scores.end());
-            double second_best_score = *std::max_element(scores.begin(), scores.end());
-            if (second_best_score != DEATH) {
-                max_score = second_best_score;
-            }
-        }
-
-        // Add to board_states map state and time
-        board_states[state] = time(0);
-        if (board_states.size() > (size_t) (board->n + board->m)) {
-            // Remove oldest state
-            auto oldest = std::min_element(board_states.begin(), board_states.end(), [](const auto& a, const auto& b) {
-                return a.second < b.second;
-            });
-            board_states.erase(oldest);
-        }
-    }
 
     if (max_score == forward) return {"fw", max_score};
     else if (max_score == backward) return {"bw", max_score};
@@ -149,12 +132,13 @@ std::pair<std::string, double> algorithm::decide_move(game_board* board, tank* s
     else if (max_score == rotate_left_eighth) return {"r8l", max_score};
     else if (max_score == rotate_right_eighth) return {"r8r", max_score};
     else if (max_score == shoot) return {"shoot", max_score};
+    else if (max_score == update_board) return {"update", max_score};
     else return {"skip", max_score};
 }
 
 shell_avoidance_algorithm::shell_avoidance_algorithm() : algorithm(), shell_danger_radius(SHELL_DANGER_RADIUS), shell_danger_distance(SHELL_DANGER_DISTANCE), mine_danger_radius(MINE_DANGER_RADIUS) {}
 
-double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* self_copy) {
+double shell_avoidance_algorithm::score_position(game_board* board_copy, shared_ptr<tank> self_copy) {
     double score = 0;
 
     for (auto& s : board_copy->shells) {
@@ -197,11 +181,11 @@ double shell_avoidance_algorithm::score_position(game_board* board_copy, tank* s
     return score;
 }
 
-double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_copy, int lookahead) {
+double shell_avoidance_algorithm::base_score(game_board* board_copy, shared_ptr<tank> self_copy, int lookahead, int stepsSinceBoardUpdate) {
     // First, check if the tank still exists in the board copy
     bool tank_exists = false;
     for (auto& t : board_copy->tanks) {
-        if (t->symbol == self_copy->symbol) {
+        if (t->player_number == self_copy->player_number && t->tank_number == self_copy->tank_number && t->alive) {
             tank_exists = true;
             break;
         }
@@ -211,19 +195,38 @@ double shell_avoidance_algorithm::base_score(game_board* board_copy, tank* self_
 
     if (!tank_exists) {
         return DEATH; // Tank does not exist in the board copy
-    } else if (board_copy->tanks.size() == 1) {
-        score += WIN; // Tank is the only one left
+    } else {
+        // Check how many enemy/ally tanks are alive
+        int enemy_tanks_alive = 0;
+        int ally_tanks_alive = 0;
+        for (auto& t : board_copy->tanks) {
+            if (t->alive) {
+                if (t->player_number == self_copy->player_number) {
+                    ally_tanks_alive++;
+                } else {
+                    enemy_tanks_alive++;
+                }
+            }
+        }
+
+        score -= enemy_tanks_alive * WIN;
+        score += ally_tanks_alive * WIN * 2; // More important to stay alive than to kill enemies
     }
     
     fetch_walls_and_mines(board_copy);
     score += score_position(board_copy, self_copy);
+
+    // Score based on steps since the last board update
+    if (stepsSinceBoardUpdate > 3) {
+        score -= stepsSinceBoardUpdate * 10; // Penalize for not updating the board frequently
+    }
 
     if (score == DEATH) {
         return DEATH; // Tank is dead
     }
 
     if (lookahead > 0) {
-        double next_score = decide_move(board_copy, self_copy, lookahead - 1, false).second;
+        double next_score = decide_move(board_copy, self_copy, lookahead - 1, stepsSinceBoardUpdate + 1, false).second;
         if (next_score == DEATH) {
             return DEATH;
         }
@@ -264,9 +267,9 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
                 if (!visited[new_x][new_y]) {
                     visited[new_x][new_y] = true;
 
-                    if (board->arr[new_x][new_y].has_Object()) {
-                        game_object* obj = board->arr[new_x][new_y].get_Object();
-                        if (obj->get_symbol() == 'w' || obj->get_symbol()== 'm') {
+                    if (board->get_cell(new_x, new_y).has_Object()) {
+                        game_object* obj = board->get_cell(new_x, new_y).get_Object();
+                        if (obj->get_symbol() == '#' || obj->get_symbol()== '@') {
                             continue; // Skip walls and mines
                         }
                     }
@@ -282,7 +285,7 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
 }
 
 running_algorithm::running_algorithm() : shell_avoidance_algorithm() {}
-double running_algorithm::score_position(game_board* board_copy, tank* self_copy) {
+double running_algorithm::score_position(game_board* board_copy, shared_ptr<tank> self_copy) {
     double score = shell_avoidance_algorithm::score_position(board_copy, self_copy);
 
     if (score == DEATH) {
@@ -290,7 +293,7 @@ double running_algorithm::score_position(game_board* board_copy, tank* self_copy
     }
 
     for (auto& t : board_copy->tanks) {
-        if (t->symbol != self_copy->symbol) {
+        if (t->player_number!= self_copy->player_number) {
             Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
             Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
 
@@ -299,8 +302,6 @@ double running_algorithm::score_position(game_board* board_copy, tank* self_copy
             if (shortest_path < 7) {
                 score -= pow(10.0 / (double) (shortest_path + 1), 2); // Closer to the enemy tank, lower the score
             }
-
-            break;
         }
     }
 
@@ -310,7 +311,7 @@ double running_algorithm::score_position(game_board* board_copy, tank* self_copy
 
 chasing_algorithm::chasing_algorithm() : shell_avoidance_algorithm() {}
 
-double chasing_algorithm::score_position(game_board* board_copy, tank* self_copy) {
+double chasing_algorithm::score_position(game_board* board_copy, shared_ptr<tank> self_copy) {
     double score = shell_avoidance_algorithm::score_position(board_copy, self_copy);
 
     if (score == DEATH) {
@@ -318,33 +319,31 @@ double chasing_algorithm::score_position(game_board* board_copy, tank* self_copy
     }
 
     for (auto& t : board_copy->tanks) {
-        if (t->symbol != self_copy->symbol) {
+        if (t->player_number != self_copy->player_number) {
             Vector2D tank_pos = {self_copy->get_x(), self_copy->get_y()};
             Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
 
             int shortest_path = find_shortest_path(tank_pos, enemy_tank_pos, board_copy);
             score += pow(15.0 / (double) (shortest_path + 1), 1.5); // Closer to the enemy tank, higher the score
-
-            break;
         }
     }
 
     return score;
 }
 
-double chasing_algorithm::score_shoot(game_board* board, tank* self, int lookahead) {
+double chasing_algorithm::score_shoot(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) {
     if (self->shot_timer > 0) {
         return -1000000; // Cannot shoot
     }
 
-    double score = shell_avoidance_algorithm::score_shoot(board, self, lookahead);
+    double score = shell_avoidance_algorithm::score_shoot(board, self, lookahead, stepsSinceBoardUpdate);
 
     if (score == DEATH) {
         return DEATH;
     }
 
     for (auto& t : board->tanks) {
-        if (t->symbol != self->symbol) {
+        if (t->player_number != self->player_number) {
             // Check if the enemy tank is in the line of fire
             Vector2D enemy_tank_pos = {t->get_x(), t->get_y()};
             Vector2D shell_pos = {self->get_x() + self->directionx, self->get_y() + self->directiony};

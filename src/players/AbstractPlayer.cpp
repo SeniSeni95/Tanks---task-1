@@ -66,7 +66,7 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
     int x = get<0>(self_tank);
     int y = get<1>(self_tank);
 
-    game_object *obj = board->arr[x][y].get_Object();
+    game_object *obj = board->get_cell(x, y).get_Object();
     if (!obj)
     {
         throw std::runtime_error("No object at self tank's position");

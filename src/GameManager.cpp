@@ -43,41 +43,41 @@ void GameManager::readBoard(const std::string& filename) {
     getline(file, line); sscanf(line.c_str(), "Cols = %d", &cols);
 
     std::vector<std::vector<cell>> arr;
-    arr.reserve(rows);
-    for (int i = 0; i < rows; ++i) {
-        std::vector<cell> row;
-        row.reserve(cols);
-        for (int j = 0; j < cols; ++j) {
-            row.emplace_back(i, j);
+    arr.reserve(cols);
+    for (int i = 0; i < cols; ++i) {
+        std::vector<cell> col;
+        col.reserve(rows);
+        for (int j = 0; j < rows; ++j) {
+            col.emplace_back(i, j);
         }
-        arr.push_back(std::move(row));
+        arr.push_back(std::move(col));
     }
 
-    board = std::make_unique<game_board>(rows, cols, std::move(arr));
+    board = std::make_unique<game_board>(cols, rows, std::move(arr));
     std::set<char> valid_chars = {'#', '1', '2', ' ', '@'};
 
     std::vector<int> tank_counters(2, 0); // 0 for player 1, 1 for player 2
 
-    for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < rows; ++j) {
         getline(file, line);
-        for (int j = 0; j < cols; ++j) {
-            char ch = (j < static_cast<int>(line.size())) ? line[j] : ' ';
+        for (int i = 0; i < cols; ++i) {
+            char ch = (i < static_cast<int>(line.size())) ? line[i] : ' ';
             if (valid_chars.find(ch) == valid_chars.end()) ch = ' ';
 
-            cell& current = board->arr[i][j];
+            cell& current = board->get_cell(i, j);
             current.x = i;
             current.y = j;
 
             if (ch == '#') {
-                current.add_Object(std::make_shared<wall>('w', &current));
+                current.add_Object(std::make_shared<wall>('#', &current));
             } else if (ch == '@') {
                 current.add_Object(std::make_shared<mine>('@', &current));
             } else if (ch == '1' || ch == '2') {
                 int player_number = (ch == '1') ? 0 : 1;
                 int tank_number = tank_counters[player_number]++;
-                int directiony = (player_number == 0) ? -1 : 1; // Player 1 faces left, Player 2 faces right
+                int directionx = (player_number == 0) ? -1 : 1; // Player 1 faces left, Player 2 faces right
                 // Default direction: facing left for player 1, right for player 2
-                auto tank_ptr = std::make_shared<tank>(ch, player_number, tank_number, 0, directiony, &current, nullptr);
+                auto tank_ptr = std::make_shared<tank>(ch, player_number+1, tank_number, directionx, 0, &current, nullptr);
                 board->tanks.push_back(tank_ptr);
                 current.add_Object(tank_ptr);
             }
@@ -97,8 +97,8 @@ void GameManager::readBoard(const std::string& filename) {
     }
 
     players.resize(3);
-    players[1] = playerFactory->create(1, rows, cols, maxSteps, numShells);
-    players[2] = playerFactory->create(2, rows, cols, maxSteps, numShells);
+    players[1] = playerFactory->create(1, cols, rows, maxSteps, numShells);
+    players[2] = playerFactory->create(2, cols, rows, maxSteps, numShells);
 }
 
 std::string actionToString(ActionRequest action) {

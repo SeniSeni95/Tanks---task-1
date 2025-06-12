@@ -47,7 +47,7 @@ ActionRequest AbstractTankAlgorithm::getAction()
 ActionRequest AbstractTankAlgorithm::getActionInternal()
 {
     // Use the algorithm to decide the action
-    auto [action, score] = algo->decide_move(board.get(), selfTank.get(), stepsSinceBoardUpdate);
+    auto [action, score] = algo->decide_move(board.get(), selfTank, 2, stepsSinceBoardUpdate);
     return stringToAction(action);
 }
 
@@ -69,17 +69,21 @@ void AbstractTankAlgorithm::updateBattleInfo(BattleInfo &info)
         {
             if (t->player_number == playerIndex && t->tank_number == tankIndex)
             {
-                selfTank = make_unique<tank>(*t);
+                selfTank = t;
+                break;
             }
         }
     }
-    else
+
+    if (!selfTank)
     {
-        my_info->setSelfTank(make_tuple(
+        throw std::runtime_error("Self tank not found in the board");
+    }
+    
+    my_info->setSelfTank(make_tuple(
             selfTank->get_x(),
             selfTank->get_y(),
             selfTank->directionx,
             selfTank->directiony,
             selfTank->gear));
-    }
 }

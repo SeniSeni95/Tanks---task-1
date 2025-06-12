@@ -44,22 +44,23 @@ public:
 
     virtual ~algorithm() = default;
 
-    virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) = 0;
+    virtual double base_score(game_board* board_copy, shared_ptr<tank> self_copy, int lookahead, int stepsSinceBoardUpdate) = 0;
 
-    void other_tanks_turn(game_board* board, tank* self);
-    void do_move(game_board* board, tank* self, const std::string& move);
-    double score_single_move(game_board* board, tank* self, const std::string& move, int lookahead);
-    virtual double score_forward_move(game_board* board, tank* self, int lookahead);
-    virtual double score_backward_move(game_board* board, tank* self, int lookahead);
-    virtual double score_rotate_left_quarter(game_board* board, tank* self, int lookahead);
-    virtual double score_rotate_right_quarter(game_board* board, tank* self, int lookahead);
-    virtual double score_rotate_left_eighth(game_board* board, tank* self, int lookahead);
-    virtual double score_rotate_right_eighth(game_board* board, tank* self, int lookahead);
-    virtual double score_shoot(game_board* board, tank* self, int lookahead);
-    virtual double score_skip(game_board* board, tank* self, int lookahead);
-    tank* get_self_in_board_copy(game_board* board_copy, tank* self);
+    void other_tanks_turn(game_board* board, shared_ptr<tank> self);
+    void do_move(game_board* board, shared_ptr<tank> self, const std::string& move);
+    double score_single_move(game_board* board, shared_ptr<tank> self, const std::string& move, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_forward_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_backward_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_rotate_left_quarter(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_rotate_right_quarter(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_rotate_left_eighth(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_rotate_right_eighth(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_shoot(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_skip(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate);
+    virtual double score_update_board(game_board* board, shared_ptr<tank> self, int lookahead);
+    shared_ptr<tank> get_self_in_board_copy(game_board* board_copy, shared_ptr<tank> self);
     void fetch_walls_and_mines(game_board* board);
-    std::pair<std::string, double> decide_move(game_board* board, tank* self, int lookahead, bool first_call = true);
+    std::pair<std::string, double> decide_move(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate, bool first_call = true);
 };
 
 class shell_avoidance_algorithm : public algorithm {
@@ -70,8 +71,8 @@ protected:
 
 public:
     shell_avoidance_algorithm();
-    virtual double score_position(game_board* board_copy, tank* self_copy);
-    virtual double base_score(game_board* board_copy, tank* self_copy, int lookahead) override;
+    virtual double score_position(game_board* board_copy, shared_ptr<tank> self_copy);
+    virtual double base_score(game_board* board_copy, shared_ptr<tank> self_copy, int lookahead, int stepsSinceBoardUpdate) override;
 };
 
 int find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
@@ -79,14 +80,14 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board_copy);
 class chasing_algorithm : public shell_avoidance_algorithm {
 public:
     chasing_algorithm();
-    virtual double score_position(game_board* board_copy, tank* self_copy) override;
-    virtual double score_shoot(game_board* board, tank* self, int lookahead) override;
+    virtual double score_position(game_board* board_copy, shared_ptr<tank> self_copy) override;
+    virtual double score_shoot(game_board* board, shared_ptr<tank> self, int lookahead, int stepsSinceBoardUpdate) override;
 };
 
 class running_algorithm : public shell_avoidance_algorithm {
 public:
     running_algorithm();
-    virtual double score_position(game_board* board_copy, tank* self_copy) override;
+    virtual double score_position(game_board* board_copy, shared_ptr<tank> self_copy) override;
 };
 
 #endif // ALGORITHMS_H

@@ -23,7 +23,7 @@ public:
         if (!boardCopy || x >= static_cast<size_t>(boardCopy->n) || y >= static_cast<size_t>(boardCopy->m))
             return '&';
 
-        const cell& c = boardCopy->arr[x][y];
+        const cell& c = boardCopy->get_cell(x, y);
         if (c.objects.empty()) return ' ';
 
         for (const std::shared_ptr<game_object>& obj : c.objects) {

@@ -24,7 +24,7 @@ int main() {
     auto base_board = std::make_unique<game_board>(rows, cols, std::move(arr));
 
     // Place wall and mine for visual diversity (optional)
-    base_board->arr[0][0].add_Object(std::make_shared<wall>('w', &base_board->arr[0][0]));
+    base_board->arr[0][0].add_Object(std::make_shared<wall>('#', &base_board->arr[0][0]));
     base_board->arr[4][4].add_Object(std::make_shared<mine>('@', &base_board->arr[4][4]));
 
     // Tank and shell data

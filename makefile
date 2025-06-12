@@ -23,7 +23,7 @@ TARGET = tanks_main
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) -o $@ $(SRC)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) -g
 
 clean:
 	rm -f $(TARGET) *.o

@@ -37,7 +37,7 @@ public:
             throw out_of_range("Coordinates out of bounds");
         }
 
-        cell &c = board->arr[x][y];
+        cell &c = board->get_cell(x, y);
         for (const auto &obj : c.objects) {
             tank *t = dynamic_cast<tank *>(obj.get());
             if (t) {

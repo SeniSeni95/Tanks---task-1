@@ -25,9 +25,9 @@ std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vec
         newPoint.y = (newPoint.y + m) % m; // Wrap around the y-coordinate
 
         // Check if new point is blocked by a wall
-        if (board->arr[newPoint.x][newPoint.y].has_Object()) {
-            game_object* obj = board->arr[newPoint.x][newPoint.y].get_Object();
-            if (obj->get_symbol() == 'w') {
+        if (board->get_cell(newPoint.x, newPoint.y).has_Object()) {
+            game_object* obj = board->get_cell(newPoint.x, newPoint.y).get_Object();
+            if (obj->get_symbol() == '#') {
                 break; // Stop if we hit a wall
             }
         }
