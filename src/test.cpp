@@ -30,7 +30,7 @@ int main() {
     };
 
     // Generate the board with the objects
-    auto sim_board = SatelliteViewImpl::generate_board(*board, shell_data, tank_data);
+    auto sim_board = game_board::generate_board(*board, shell_data, tank_data);
 
     // Print the board state before simulation
     std::cout << "Board before simulate_step:\n";
@@ -42,7 +42,7 @@ int main() {
     std::cin >> action;
 
     // Simulate a step for the tank at (2,2)
-    SatelliteViewImpl::simulate_step(*sim_board, std::make_tuple(2, 2, action));
+    sim_board->simulate_step(std::make_tuple(2, 2, action));
 
     // Print the board state after simulation
     std::cout << "Board after simulate_step:\n";

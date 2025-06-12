@@ -37,18 +37,5 @@ public:
     void print_board() const {
         if (boardCopy) boardCopy->print_board();
     }
-
-    // --- FIXED FUNCTION DECLARATIONS ---
-    static std::unique_ptr<game_board> generate_board(
-        const game_board& base_board,
-        const std::vector<std::tuple<int, int, int, int>>& shell_data,
-        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
-    );
-
-    static void simulate_step(
-        game_board& board,
-        const std::tuple<int, int, std::string>& tank_command
-    );
 };
-
 #endif

@@ -82,11 +82,18 @@ public:
     std::shared_ptr<shell> get_shared_shell(shell* s);
     void remove_shell(game_object* s);
 
+    static std::unique_ptr<game_board> generate_board(
+        const game_board& base_board,
+        const std::vector<std::tuple<int, int, int, int>>& shell_data,
+        const std::vector<std::tuple<int, int, int, int, std::string>>& tank_data
+    );
+    void simulate_step(const std::tuple<int, int, std::string>& tank_command);
+    
     void print_board();
     std::unique_ptr<game_board> dummy_copy() const;
     int countAliveTanksForPlayer(char symbol) const;
     std::string get_board_state();
-
+    
     bool do_half_step(std::unordered_set<tank*>* recently_killed);
     bool do_step(std::unordered_set<tank*>* recently_killed);
     void process_shells();
