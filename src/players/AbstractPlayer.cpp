@@ -33,8 +33,7 @@ AbstractPlayer::AbstractPlayer(int player_index, size_t x, size_t y,
                                size_t max_steps, size_t num_shells)
     : Player(player_index, x, y, max_steps, num_shells),
       player_index(player_index), width(x), height(y),
-      max_steps(max_steps), num_shells(num_shells),
-      board(x, y, vector<vector<cell>>(x, vector<cell>(y))) {
+      max_steps(max_steps), num_shells(num_shells) {
       };
 
 void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteView &satellite_view)
@@ -55,7 +54,7 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
     }
 
     // Clone board
-    unique_ptr<game_board> board_copy = board.dummy_copy();
+    unique_ptr<game_board> board_copy = board->dummy_copy();
     // Create a BattleInfo object with the cloned board
     MyBattleInfo battle_info(std::move(board_copy));
     // Update the tank's algorithm with the battle info
@@ -67,7 +66,7 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
     int x = get<0>(self_tank);
     int y = get<1>(self_tank);
 
-    game_object *obj = board.arr[x][y].get_Object();
+    game_object *obj = board->arr[x][y].get_Object();
     if (!obj)
     {
         throw std::runtime_error("No object at self tank's position");
@@ -143,7 +142,7 @@ void AbstractPlayer::updateBoard(const SatelliteViewImpl *view)
     }
 
     // Update the board with the new tank and shell data
-    board = view->generate_board(shell_data, tank_data);
+    board = game_board::generate_board(*view, width, height, shell_data, tank_data);
 }
 
 /**
@@ -154,7 +153,7 @@ tank *AbstractPlayer::findClosestTank(Vector2D target_pos, char symbol)
     tank *closest_tank = nullptr;
     double min_distance = std::numeric_limits<double>::max();
 
-    for (const auto &t : board.tanks)
+    for (const auto &t : board->tanks)
     {
         if (t->get_symbol() == symbol)
         {
@@ -179,7 +178,7 @@ shell *AbstractPlayer::findClosestShell(Vector2D target_pos)
     shell *closest_shell = nullptr;
     double min_distance = std::numeric_limits<double>::max();
 
-    for (const auto &s : board.shells)
+    for (const auto &s : board->shells)
     {
         int x = s->get_x();
         int y = s->get_y();
@@ -245,7 +244,10 @@ void AbstractPlayer::initBoard(const SatelliteViewImpl *view)
     // Get initial tank data from the satellite view
     vector<tuple<int, int, int, int, string>> tank_data = initialParseSatView(view);
 
-    board = view->generate_board(
+    board = game_board::generate_board(
+        *view,
+        width,
+        height,
         std::vector<std::tuple<int, int, int, int>>(), // No shells initially
         tank_data);
 
@@ -270,6 +272,8 @@ vector<tuple<int, int, int, int, string>> AbstractPlayer::initialParseSatView(co
             }
         }
     }
+
+    return tank_data;
 }
 
 tuple<int, int, int, int, string> AbstractPlayer::initTank(const SatelliteViewImpl *view, int x, int y)
@@ -281,7 +285,7 @@ tuple<int, int, int, int, string> AbstractPlayer::initTank(const SatelliteViewIm
     {
         tank_player = player_index; // Ally tank
     }
-    else if (isEnemyTank(symbol, player_index))
+    else
     {
         tank_player = symbol - '0'; // Enemy tank
     }

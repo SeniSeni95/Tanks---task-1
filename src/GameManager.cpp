@@ -116,7 +116,7 @@ std::string actionToString(ActionRequest action) {
     }
 }
 
-ActionRequest stringToAction(string action) {
+ActionRequest stringToAction(const std::string& action) {
     if (action == "fw") return ActionRequest::MoveForward;
     if (action == "bw") return ActionRequest::MoveBackward;
     if (action == "r4l") return ActionRequest::RotateLeft90;

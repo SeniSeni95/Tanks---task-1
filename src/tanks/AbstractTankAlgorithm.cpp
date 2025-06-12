@@ -2,6 +2,11 @@
 
 using namespace std;
 
+AbstractTankAlgorithm::AbstractTankAlgorithm(int player_index, int tank_index)
+    : playerIndex(player_index), tankIndex(tank_index)
+{
+}
+
 void AbstractTankAlgorithm::initialize()
 {
     algo = createAlgorithm();

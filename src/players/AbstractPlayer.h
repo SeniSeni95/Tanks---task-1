@@ -23,13 +23,14 @@ private:
     int player_index; // Player index
     size_t width; // Width of the game board
     size_t height; // Height of the game board
+
+    bool boardInitialized = false; // Flag to check if the board is initialized
+    unique_ptr<game_board> board;
+
+public:
     size_t max_steps; // Maximum steps allowed
     size_t num_shells; // Number of shells available
 
-    bool boardInitialized = false; // Flag to check if the board is initialized
-    game_board board;
-
-public:
     AbstractPlayer(int player_index, size_t x, size_t y,
                      size_t max_steps, size_t num_shells);
 

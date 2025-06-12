@@ -5,7 +5,9 @@ SRC = src/main.cpp \
       src/Board.cpp \
       src/GameManager.cpp \
       src/GameObject.cpp \
+      src/algorithms.cpp \
       src/utils.cpp \
+      src/Vector2D.cpp \
       src/MyTankAlgorithm.cpp \
       src/MyTankAlgorithmFactory.cpp \
       src/SatelliteViewImpl.cpp \

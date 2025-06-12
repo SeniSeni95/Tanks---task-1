@@ -1,4 +1,3 @@
-#pragma once
 #include "Vector2D.h"
 
 Vector2D Vector2D::operator+(const Vector2D& other) const {
