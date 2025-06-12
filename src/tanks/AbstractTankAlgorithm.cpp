@@ -35,10 +35,29 @@ ActionRequest AbstractTankAlgorithm::getAction()
     else
     {
         stepsSinceBoardUpdate++;
+
+
+        cout << "Before" << endl;
+        board->print_board();
+
         board->simulate_step(make_tuple(
             selfTank->get_x(),
             selfTank->get_y(),
             actionToString(action)));
+
+        cout << "After" << endl;
+        board->print_board();
+        cout << "Action: " << actionToString(action) << endl;
+        
+        // Update the self tank's position after the action
+        for (auto &t : board->tanks)
+        {
+            if (t->player_number == playerIndex && t->tank_number == tankIndex)
+            {
+                selfTank = t;
+                break;
+            }
+        }
     }
 
     return action;

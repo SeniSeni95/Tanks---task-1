@@ -144,7 +144,7 @@ std::unique_ptr<game_board> game_board::dummy_copy() const {
         std::vector<cell> col;
         col.reserve(m);
         for (int i = 0; i < m; ++i) {
-            col.emplace_back(i, j);
+            col.emplace_back(j, i);
         }
         arr_copy.push_back(std::move(col));
     }
@@ -366,7 +366,7 @@ std::unique_ptr<game_board> game_board::generate_board(
         std::vector<cell> col;
         col.reserve(m);
         for (int i = 0; i < m; ++i) {
-            col.emplace_back(i, j);
+            col.emplace_back(j, i);
         }
         arr.push_back(std::move(col));
     }

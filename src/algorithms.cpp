@@ -269,7 +269,7 @@ int find_shortest_path(Vector2D start, Vector2D end, game_board* board) {
 
                     if (board->get_cell(new_x, new_y).has_Object()) {
                         game_object* obj = board->get_cell(new_x, new_y).get_Object();
-                        if (obj->get_symbol() != '*' || (new_x = end.x && new_y == end.y)) { // Allow everything on the target position
+                        if (obj->get_symbol() != '*' && (new_x != end.x || new_y != end.y)) { // Allow everything on the target position
                             continue; // Skip everything except shells (they move so don't block the path)
                         }
                     }

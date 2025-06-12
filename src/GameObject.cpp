@@ -91,18 +91,14 @@ void shell::shell_move_forward(game_board& board) {
 }
 
 void shell::set_shell_symbol() {
-    const double TOLERANCE = 1e-6;
-    double degree = atan2(-directiony, directionx) * (180.0 / M_PI);
-    if (degree < 0) degree += 360;
-
-    if (fabs(degree - 0) < TOLERANCE) shell_symbol = "→";
-    else if (fabs(degree - 90) < TOLERANCE) shell_symbol = "↑";
-    else if (fabs(degree - 180) < TOLERANCE) shell_symbol = "←";
-    else if (fabs(degree - 270) < TOLERANCE) shell_symbol = "↓";
-    else if (fabs(degree - 45) < TOLERANCE) shell_symbol = "↗";
-    else if (fabs(degree - 135) < TOLERANCE) shell_symbol = "↖";
-    else if (fabs(degree - 225) < TOLERANCE) shell_symbol = "↙";
-    else if (fabs(degree - 315) < TOLERANCE) shell_symbol = "↘";
+    if (directionx == 1 && directiony == 0) shell_symbol = "→";
+    else if (directionx == 0 && directiony == -1) shell_symbol = "↑";
+    else if (directionx == -1 && directiony == 0) shell_symbol = "←";
+    else if (directionx == 0 && directiony == 1) shell_symbol = "↓";
+    else if (directionx == 1 && directiony == -1) shell_symbol = "↗";
+    else if (directionx == -1 && directiony == -1) shell_symbol = "↖";
+    else if (directionx == -1 && directiony == 1) shell_symbol = "↙";
+    else if (directionx == 1 && directiony == 1) shell_symbol = "↘";
 }
 
 string shell::to_string() {

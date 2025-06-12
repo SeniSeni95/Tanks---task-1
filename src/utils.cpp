@@ -51,50 +51,44 @@ std::pair<int, int> chebyshevDistanceToLine(const Vector2D& linePoint, const Vec
     return {bestTrajDist, bestDist}; // Return the best distance and trajectory distance
 }
 
-std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction) {
-    // Calculate the angle in radians
-    double degree = atan2(directionx, directiony) * (180.0 / M_PI); // Convert radians to degrees
+
+const int DIR_COUNT = 8;
+const int dirX[DIR_COUNT] = {  0,  1,  1,  1,  0, -1, -1, -1 };
+const int dirY[DIR_COUNT] = {  1,  1,  0, -1, -1, -1,  0,  1 };
+
+std::pair<int, int> rotateDirection(int dirx, int diry, string direction) {
+    int index = -1;
+    for (int i = 0; i < DIR_COUNT; ++i) {
+        if (dirX[i] == dirx && dirY[i] == diry) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        return {dirx, diry}; // If the direction is not found, return the original direction
+    }
+
     if (direction == "left") {
-        degree += 90;
+        index = (index + 1) % DIR_COUNT;
     } else if (direction == "right") {
-        degree -= 90;
+        index = (index + DIR_COUNT - 1) % DIR_COUNT;
+    } else {
+        throw invalid_argument("Direction must be 'left' or 'right'.");
     }
-    // Normalize the angle to the range [0, 360)
-    if (degree < 0) {
-        degree += 360;
-    } else if (degree >= 360) {
-        degree -= 360;
-    }
-    // Convert degrees back to radians for trigonometric functions
-    double radian = degree * (M_PI / 180.0);
-    // Update directionx and directiony using cos and sin
-    directionx = round(cos(radian)); // Round to avoid floating-point precision issues
-    directiony = round(sin(radian));
-    
-    return {directionx, directiony}; // Return the new direction
+
+    return {dirX[index], dirY[index]}; // Return the new direction vector
+}
+
+std::pair<int, int> rotate_4(int directionx, int directiony, std::string direction) {
+    pair<int, int> rotateOnce = rotateDirection(directionx, directiony, direction);
+    pair<int, int> rotateTwice = rotateDirection(rotateOnce.first, rotateOnce.second, direction);
+    return {rotateTwice.first, rotateTwice.second}; // Return the new direction after two rotations
 }
 
 std::pair<int, int> rotate_8(int directionx, int directiony, std::string direction) {
-    // Calculate the angle in radians
-    double degree = atan2(directionx, directiony) * (180.0 / M_PI); // Convert radians to degrees
-    if (direction == "left") {
-        degree += 45;
-    } else if (direction == "right") {
-        degree -= 45;
-    }
-    // Normalize the angle to the range [0, 360)
-    if (degree < 0) {
-        degree += 360;
-    } else if (degree >= 360) {
-        degree -= 360;
-    }
-    // Convert degrees back to radians for trigonometric functions
-    double radian = degree * (M_PI / 180.0);
-    // Update directionx and directiony using cos and sin
-    directionx = round(cos(radian)); // Round to avoid floating-point precision issues
-    directiony = round(sin(radian));
-
-    return {directionx, directiony}; // Return the new direction
+    pair<int, int> rotate = rotateDirection(directionx, directiony, direction);
+    return {rotate.first, rotate.second}; // Return the new direction after one rotation
 }
 
 std::string join(const std::vector<std::string>& vec, const std::string& delim) {
