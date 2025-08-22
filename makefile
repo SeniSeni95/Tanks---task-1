@@ -8,9 +8,9 @@ SRC = src/main.cpp \
       src/algorithms.cpp \
       src/utils.cpp \
       src/Vector2D.cpp \
-      src/MyTankAlgorithm.cpp \
       src/MyTankAlgorithmFactory.cpp \
-      src/SatelliteViewImpl.cpp \
+      src/SatelliteViewImp.cpp \
+      src/MyPlayerFactory.cpp \
       src/players/AbstractPlayer.cpp \
       src/players/CalmPlayer.cpp \
       src/players/AggressivePlayer.cpp \

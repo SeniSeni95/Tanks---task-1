@@ -1,0 +1,11 @@
+1-input a
+MaxSteps = 5000
+NumShells=20
+Rows = 6
+Cols =8
+####
+# 1 #
+# 1 #X
+#   2
+#@     
+######## 

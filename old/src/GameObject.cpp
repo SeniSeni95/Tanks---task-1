@@ -145,10 +145,9 @@ void tank::move_forward(game_board& board) {
 void tank::move_backwards(game_board& board) {
     int new_x = (x - directionx + board.n) % board.n;
     int new_y = (y - directiony + board.m) % board.m;
-    cell* newcell = &board.arr[new_x][new_y];
+    cell* newcell = &board.get_cell(new_x, new_y);
 
-    // Allow moving if the cell is empty or does not have a wall
-    if (!newcell->has_Object() || newcell->get_Object()->get_symbol() != 'w') {
+    if (!newcell->has_Object() || newcell->get_Object()->get_symbol() != '#') {
         curcell->remove_Object(this);
         curcell = newcell;
         x = new_x;

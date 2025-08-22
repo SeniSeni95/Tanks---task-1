@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "Vector2D.h"
+#include "BattleItem.h"
 #include "Board.h"
 #include "SatelliteViewImpl.h"
 

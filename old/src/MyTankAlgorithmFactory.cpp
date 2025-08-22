@@ -13,7 +13,7 @@ std::unique_ptr<TankAlgorithm> MyTankAlgorithmFactory::create(int player_index, 
         algo = std::make_unique<CalmTank>(player_index, tank_index);
     }
 
-    algo->initialize(); 
+    algo->initialize(); // Initialize the algorithm
     
-    return algo;
+    return std::move(algo);
 }

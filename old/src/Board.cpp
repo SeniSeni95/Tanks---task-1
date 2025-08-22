@@ -65,7 +65,7 @@ void game_board::add_tank(std::shared_ptr<tank> t) {
 
 void game_board::remove_tank(game_object* t) {
     if (tank* tk = dynamic_cast<tank*>(t)) {
-        tk->alive = false; 
+        tk->alive = false; // ✅ Safety in case called directly
     }
 
     tanks.erase(std::remove_if(tanks.begin(), tanks.end(),
@@ -173,7 +173,7 @@ std::unique_ptr<game_board> game_board::dummy_copy() const {
                     new_board->tanks.push_back(t_copy);
                 } else if (auto s = dynamic_cast<shell*>(obj_ptr.get())) {
                     auto s_copy = std::make_shared<shell>(&dst_cell, s->directionx, s->directiony);
-                    s_copy->shell_symbol = "*"; 
+                    s_copy->shell_symbol = "*"; // set symbol to star
                     s_copy->just_created = s->just_created;
                     dst_cell.add_Object(s_copy);
                     new_board->shells.push_back(s_copy);
@@ -253,7 +253,7 @@ void game_board::process_shells() {
             }
         }
 
-        // Check for tank or other collision
+        // Check for tank or other collision — defer to collision handler
         for (const auto& obj : c->objects) {
             if (obj.get() == s.get()) continue;
             if (dynamic_cast<tank*>(obj.get()) || dynamic_cast<mine*>(obj.get())) {
@@ -322,7 +322,9 @@ bool game_board::handle_cell_collisions(std::unordered_set<tank*>* recently_kill
                     c->remove_Object(s);
                 }
             }
+            // Mines persist!
         }
+        // Shells and mines only interact with tanks, not with each other.
     }
 
     collisions.clear();

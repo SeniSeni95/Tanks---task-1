@@ -3,6 +3,7 @@
 #include "TankAlgorithm.h"
 #include "SatelliteView.h"
 #include "SatelliteViewImpl.h"
+#include "BattleItem.h"
 #include "MyBattleInfo.h"
 #include "Board.h"
 #include "utils.h"
