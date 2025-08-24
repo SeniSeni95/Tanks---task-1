@@ -1,5 +1,5 @@
 #include "MyTankAlgorithmFactory.h"
-#include "TankAlgorithmFactory.h"
+#include "MyTankAlgorithmFactory.h"
 #include "tanks/AggressiveTank.h"
 #include "tanks/CalmTank.h"
 

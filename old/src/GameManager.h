@@ -6,7 +6,7 @@
 #include <iostream>
 #include "Board.h"
 #include "PlayerFactory.h"
-#include "TankAlgorithmFactory.h"
+#include "MyTankAlgorithmFactory.h"
 #include "SatelliteView.h"
 #include "SatelliteViewImpl.h"
 
@@ -15,7 +15,7 @@ ActionRequest stringToAction(const std::string& actionStr);
 
 class GameManager {
 public:
-    GameManager(std::unique_ptr<PlayerFactory> playerFactory, std::unique_ptr<TankAlgorithmFactory> tankFactory);
+    GameManager(std::unique_ptr<PlayerFactory> playerFactory, std::unique_ptr<MyTankAlgorithmFactory> tankFactory);
     void readBoard(const std::string& filename);
     void run(); // main game loop
     std::string askAlgorithm(tank* t);
@@ -37,7 +37,7 @@ private:
     bool satelliteCopyReady = false;
 
     std::unique_ptr<PlayerFactory> playerFactory;
-    std::unique_ptr<TankAlgorithmFactory> tankAlgorithmFactory;
+    std::unique_ptr<MyTankAlgorithmFactory> MyTankAlgorithmFactory;
 
     std::vector<std::shared_ptr<Player>> players;
     std::vector<std::shared_ptr<TankAlgorithm>> tankAlgorithms;

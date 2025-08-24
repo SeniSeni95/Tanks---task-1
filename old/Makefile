@@ -1,19 +1,29 @@
-# Name of the executable
-TARGET = tanks_game
-
-# All the source files
-SRCS = tanks.cpp board.cpp game_objects.cpp algorithms.cpp utils.cpp
-
-# Compiler to use
 CXX = g++
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic -I./src -I./common
 
-# Compiler flags
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic
+SRC = src/main.cpp \
+      src/Board.cpp \
+      src/GameManager.cpp \
+      src/GameObject.cpp \
+      src/algorithms.cpp \
+      src/utils.cpp \
+      src/Vector2D.cpp \
+      src/MyTankAlgorithmFactory.cpp \
+      src/SatelliteViewImp.cpp \
+      src/MyPlayerFactory.cpp \
+      src/players/AbstractPlayer.cpp \
+      src/players/CalmPlayer.cpp \
+      src/players/AggressivePlayer.cpp \
+      src/tanks/AbstractTankAlgorithm.cpp \
+      src/tanks/AggressiveTank.cpp \
+      src/tanks/CalmTank.cpp \
 
-# How to build the program
-$(TARGET): $(SRCS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(SRCS)
+TARGET = tanks_main
 
-# Clean up build files
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) -g
+
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) *.o

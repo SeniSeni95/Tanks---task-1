@@ -4,21 +4,19 @@
 #include <vector>
 #include <fstream>
 #include "Board.h"
-#include "PlayerFactory.h"
-#include "TankAlgorithmFactory.h"
-#include "SatelliteView.h"
+#include "../common/ActionUtils.h"
+#include "../common/PlayerFactory.h"
+#include "../common/SatelliteView.h"
 #include "SatelliteViewImpl.h"
-#include "AbstractGameManager.h"
-#include "GameResult.h"
-#include "ActionRequest.h"
-
-std::string actionToString(ActionRequest action);
-ActionRequest stringToAction(const std::string& actionStr);
+#include "../common/AbstractGameManager.h"
+#include "../common/GameResult.h"
+#include "../common/ActionRequest.h"
+#include "../algorithm/MyTankAlgorithmFactory.h"
 
 class GameManager : public AbstractGameManager {
 public:
-    GameManager(std::unique_ptr<PlayerFactory> playerFactory,
-                std::unique_ptr<TankAlgorithmFactory> tankFactory,
+    GameManager(PlayerFactory playerFactory,
+                MyTankAlgorithmFactory tankFactory,
                 bool verbose);
 
     GameResult run(
@@ -33,12 +31,14 @@ public:
     ) override;
 
 private:
+    std::string commandStringToEnumName(const std::string& cmd);
+
     std::unique_ptr<game_board> board;
     std::unique_ptr<SatelliteView> satview; // for updates during turns
     bool satelliteCopyReady = false;
 
-    std::unique_ptr<PlayerFactory> playerFactory;
-    std::unique_ptr<TankAlgorithmFactory> tankAlgorithmFactory;
+    PlayerFactory playerFactory;
+    MyTankAlgorithmFactory myTankAlgorithmFactory;
 
     bool verboseOutput = false;
     std::ofstream verboseFile;

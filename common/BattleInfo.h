@@ -2,5 +2,6 @@
 
 class BattleInfo {
 public:
-    virtual ~BattleInfo() {}
+	virtual ~BattleInfo() {}
 };
+

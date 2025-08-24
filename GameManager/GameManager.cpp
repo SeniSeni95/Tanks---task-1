@@ -1,12 +1,13 @@
 #include "GameManager.h"
-#include "TankAlgorithmFactory.h"
-#include "MyPlayerFactory.h"
-#include "PlayerFactory.h"
-#include "Board.h"
-#include "SatelliteView.h"
-#include "ActionRequest.h"
-#include "TankAlgorithm.h"
-#include "Player.h"
+#include "../algorithm/MyTankAlgorithmFactory.h"  // Fix include path
+#include "../algorithm/MyPlayerFactory.h"
+#include "../common/PlayerFactory.h"         // Fix include path
+#include "../GameManager/Board.h"            // Fix include path
+#include "../common/SatelliteView.h"         // Fix include path
+#include "../common/ActionRequest.h"         // Fix include path
+#include "../common/TankAlgorithm.h"         // Fix include path
+#include "../common/Player.h"                // Fix include path
+#include "../common/ActionUtils.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -14,14 +15,14 @@
 #include <map>
 #include <filesystem>
 #include <unordered_set>
-#include "utils.h"
+#include "utils.h"                 // Fix include path
 
 
-GameManager::GameManager(std::unique_ptr<PlayerFactory> playerFactory,
-                         std::unique_ptr<TankAlgorithmFactory> tankFactory,
+GameManager::GameManager(PlayerFactory playerFactory,
+                         MyTankAlgorithmFactory tankFactory,
                          bool verbose)
-    : playerFactory(std::move(playerFactory)),
-      tankAlgorithmFactory(std::move(tankFactory)),
+    :  playerFactory(std::move(playerFactory)),
+      myTankAlgorithmFactory(std::move(tankFactory)), // use lowercase variable name to match header
       verboseOutput(verbose) {
     satview = std::make_unique<SatelliteViewImpl>();
     if (verboseOutput) {
@@ -35,58 +36,34 @@ GameManager::GameManager(std::unique_ptr<PlayerFactory> playerFactory,
 }
 
 
-std::string actionToString(ActionRequest action) {
-    switch (action) {
-        case ActionRequest::MoveForward: return "fw";
-        case ActionRequest::MoveBackward: return "bw";
-        case ActionRequest::RotateLeft90: return "r4l";
-        case ActionRequest::RotateRight90: return "r4r";
-        case ActionRequest::RotateLeft45: return "r8l";
-        case ActionRequest::RotateRight45: return "r8r";
-        case ActionRequest::Shoot: return "shoot";
-        case ActionRequest::DoNothing: return "skip";
-        case ActionRequest::GetBattleInfo: return "update"; // <-- Add this line
-        default: return "skip";
-    }
-}
-
-ActionRequest stringToAction(const std::string& action) {
-    if (action == "fw") return ActionRequest::MoveForward;
-    if (action == "bw") return ActionRequest::MoveBackward;
-    if (action == "r4l") return ActionRequest::RotateLeft90;
-    if (action == "r4r") return ActionRequest::RotateRight90;
-    if (action == "r8l") return ActionRequest::RotateLeft45;
-    if (action == "r8r") return ActionRequest::RotateRight45;
-    if (action == "shoot") return ActionRequest::Shoot;
-    if (action == "update") return ActionRequest::GetBattleInfo; // <-- Add this line
-    if (action == "skip") return ActionRequest::DoNothing;
-
-    return ActionRequest::DoNothing;
-}
 
 
-std::string commandStringToEnumName(const std::string& cmd);
+
 GameResult GameManager::run(
-        size_t map_width, size_t map_height,
-        const SatelliteView& map,
-        std::string map_name,
-        size_t max_steps, size_t num_shells,
-        Player& player1, std::string name1,
-        Player& player2, std::string name2,
-        TankAlgorithmFactory player1_tank_algo_factory,
-        TankAlgorithmFactory player2_tank_algo_factory
+    size_t map_width, size_t map_height,
+    const SatelliteView& map,
+    std::string map_name,
+    size_t max_steps, size_t num_shells,
+    Player& player1, std::string name1,
+    Player& player2, std::string name2,
+    MyTankAlgorithmFactory player1_tank_algo_factory,
+    MyTankAlgorithmFactory player2_tank_algo_factory
 ) {
     // --- build board from SatelliteView
-    std::vector<std::vector<cell>> arr(map_width, std::vector<cell>(map_height));
-    for (size_t i=0;i<map_width;i++) {
-        for (size_t j=0;j<map_height;j++) {
-            arr[i][j] = cell((int)i,(int)j);
-            char c = map.getObjectAt(i,j);
-            if (c == '#') arr[i][j].add_Object(std::make_shared<wall>('#', &arr[i][j]));
-            else if (c == '@') arr[i][j].add_Object(std::make_shared<mine>('@', &arr[i][j]));
-            // tanks ('1','2') are normally added during setup elsewhere
-        }
+   std::vector<std::vector<cell>> arr;
+arr.reserve(map_width);
+for (size_t i = 0; i < map_width; ++i) {
+    std::vector<cell> row;
+    row.reserve(map_height);
+    for (size_t j = 0; j < map_height; ++j) {
+        row.emplace_back((int)i, (int)j);
+        char c = map.getObjectAt(i,j);
+        if (c == '#') row.back().add_Object(std::make_shared<wall>('#', &row.back()));
+        else if (c == '@') row.back().add_Object(std::make_shared<mine>('@', &row.back()));
     }
+    arr.push_back(std::move(row));
+}
+
     board = std::make_unique<game_board>((int)map_width,(int)map_height,std::move(arr));
 
     // (optional) open verbose log file
@@ -255,23 +232,22 @@ result.remaining_tanks = { (size_t)p1_alive, (size_t)p2_alive };
 
 // snapshot of final board (if you want to keep game state)
 if (satview) {
-    result.gameState = std::make_unique<SatelliteViewImpl>(
-        *static_cast<SatelliteViewImpl*>(satview.get()));
+    result.gameState = std::move(satview); // transfer ownership into result
 }
 
     // Final verbose message
     if (verboseOutput) {
-        if (result.winner == -1)
+        if (result.winner == 0)  // Changed from -1 to 0 for tie
             game_output << "Tie\n";
         else
-            game_output << "Winner: Player " << result.winner+1 << "\n";
+            game_output << "Winner: Player " << result.winner << "\n";  // Removed +1
     }
 
     return result;
 }
 
 
-std::string commandStringToEnumName(const std::string& cmd) {
+std::string GameManager::commandStringToEnumName(const std::string& cmd) {
     if (cmd.find("fw") == 0) return "MoveForward";
     if (cmd.find("bw") == 0) return "MoveBackward";
     if (cmd.find("r4l") == 0) return "RotateLeft90";

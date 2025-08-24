@@ -1,5 +1,5 @@
 #include "GameManager.h"
-#include "TankAlgorithmFactory.h"
+#include "MyTankAlgorithmFactory.h"
 #include "MyPlayerFactory.h"
 #include "PlayerFactory.h"
 #include "Board.h"
@@ -18,9 +18,9 @@
 
 
 GameManager::GameManager(std::unique_ptr<PlayerFactory> playerFactory,
-                         std::unique_ptr<TankAlgorithmFactory> tankFactory)
+                         std::unique_ptr<MyTankAlgorithmFactory> tankFactory)
     : playerFactory(std::move(playerFactory)),
-      tankAlgorithmFactory(std::move(tankFactory)) {
+      MyTankAlgorithmFactory(std::move(tankFactory)) {
     satview = std::make_unique<SatelliteViewImpl>();
 }
 
@@ -91,7 +91,7 @@ void GameManager::readBoard(const std::string& filename) {
         tank* t = t_ptr.get();
         int player_index = t->player_number;
         int tank_index = t->tank_number;
-        auto algo = tankAlgorithmFactory->create(player_index, tank_index);
+        auto algo = MyTankAlgorithmFactory->create(player_index, tank_index);
         t->algo = algo.get();
         tankAlgorithms.push_back(std::move(algo));
     }
