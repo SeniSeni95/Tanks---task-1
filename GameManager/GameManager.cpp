@@ -17,6 +17,8 @@
 #include <unordered_set>
 #include "utils.h"                 // Fix include path
 
+// Debug control - set to true to enable debugging, false to disable
+static const bool DEBUG_ENABLED = false;
 
 GameManager::GameManager(PlayerFactory playerFactory,
                          MyTankAlgorithmFactory tankFactory,
@@ -35,10 +37,6 @@ GameManager::GameManager(PlayerFactory playerFactory,
     }
 }
 
-
-
-
-
 GameResult GameManager::run(
     size_t map_width, size_t map_height,
     const SatelliteView& map,
@@ -49,24 +47,90 @@ GameResult GameManager::run(
     MyTankAlgorithmFactory player1_tank_algo_factory,
     MyTankAlgorithmFactory player2_tank_algo_factory
 ) {
-    // --- build board from SatelliteView
-   std::vector<std::vector<cell>> arr;
+    std::vector<int> tank_counters(3, 0);
+    if (DEBUG_ENABLED) {
+        std::cout << "[DEBUG] Building board from SatelliteView...\n";
+    }
+
+// Prepare cells
+std::vector<std::vector<cell>> arr;
 arr.reserve(map_width);
+
+// Temporary storage for tanks + algos
+std::vector<std::shared_ptr<tank>> tempTanks;
+std::vector<std::unique_ptr<TankAlgorithm>> tempAlgos;
+
+// Build grid from SatelliteView
 for (size_t i = 0; i < map_width; ++i) {
     std::vector<cell> row;
     row.reserve(map_height);
     for (size_t j = 0; j < map_height; ++j) {
         row.emplace_back((int)i, (int)j);
-        char c = map.getObjectAt(i,j);
-        if (c == '#') row.back().add_Object(std::make_shared<wall>('#', &row.back()));
-        else if (c == '@') row.back().add_Object(std::make_shared<mine>('@', &row.back()));
+        char c = map.getObjectAt(i, j);
+
+        if (c == '#') {
+            row.back().add_Object(std::make_shared<wall>('#', &row.back()));
+        }
+        else if (c == '@') {
+            row.back().add_Object(std::make_shared<mine>('@', &row.back()));
+        }
+       else if (c == '1' || c == '2') {
+    int player_idx = (c == '1' ? 0 : 1);   // 0 for Player1, 1 for Player2
+    int tank_number = tank_counters[player_idx]++;
+
+    int directionx = (player_idx == 0) ? -1 : 1;  // Player1 faces left, Player2 faces right
+
+    // Tanks use player_number = 1/2 (NOT 0/1), just like Task 2
+    auto t = std::make_shared<tank>(c, player_idx + 1, tank_number,
+                                    directionx, 0, &row.back(), nullptr);
+    row.back().add_Object(t);
+    tempTanks.push_back(t);
+
+    // Algorithms always created with 0/1 indices (NOT 1/2)
+  auto algo = (player_idx == 0
+    ? player1_tank_algo_factory(1, tank_number)  // Player 1
+    : player2_tank_algo_factory(2, tank_number)  // Player 2
+);
+
+    if (algo) {
+        t->algo = algo.get();
+        tempAlgos.push_back(std::move(algo));
+    } else {
+        if (DEBUG_ENABLED) {
+            std::cerr << "[ERROR] Tank factory returned nullptr for P"
+                      << (player_idx + 1) << " T" << tank_number << "\n";
+        }
+    }
+}
+
     }
     arr.push_back(std::move(row));
 }
 
-    board = std::make_unique<game_board>((int)map_width,(int)map_height,std::move(arr));
+// Create the board
+board = std::make_unique<game_board>((int)map_width, (int)map_height, std::move(arr));
 
-    // (optional) open verbose log file
+// Move tanks/algorithms into GameManager's storage
+for (auto& t : tempTanks) {
+    board->tanks.push_back(t);
+}
+for (auto& algo : tempAlgos) {
+    tankAlgorithms.push_back(std::move(algo));
+}
+
+if (DEBUG_ENABLED) {
+    std::cout << "[DEBUG] Board created, tanks=" << board->tanks.size() << "\n";
+}
+
+// 🔑 Initialize SatelliteView with this new board
+if (satview) {
+    static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
+    satelliteCopyReady = true;
+    if (DEBUG_ENABLED) {
+        std::cout << "[DEBUG] SatelliteView initialized with board copy\n";
+    }
+}
+
     std::ofstream game_output;
     if (verboseOutput) {
         std::string output_filename = "output_" + map_name + ".txt";
@@ -94,7 +158,15 @@ for (size_t i = 0; i < map_width; ++i) {
     int round_counter = 0;
     std::unordered_set<tank*> recently_killed;
 
+    if (DEBUG_ENABLED) {
+        std::cout << "[DEBUG] Entering game loop (max_steps=" << max_steps 
+                  << ", num_shells=" << num_shells << ")\n";
+    }
+
     while (time_out_steps >= 0 && !game_over && round_counter < (int)max_steps) {
+        if (DEBUG_ENABLED) {
+            std::cout << "\n[DEBUG] --- Round " << (round_counter+1) << " ---\n";
+        }
         satelliteCopyReady = false;
 
         bool out_of_shells = true;
@@ -107,17 +179,15 @@ for (size_t i = 0; i < map_width; ++i) {
         }
         if (out_of_shells) {
             time_out_steps--;
-            if (verboseOutput) {
-                game_output << "[DEBUG] All tanks are out of shells. time_out_steps = "
-                            << time_out_steps << std::endl;
+            if (DEBUG_ENABLED) {
+                std::cout << "[DEBUG] All tanks are out of shells. time_out_steps=" 
+                          << time_out_steps << "\n";
             }
         }
 
         for (tank* t : tanks_by_birth) {
             if (t->shot_timer > 0) t->shot_timer--;
         }
-
-        if (verboseOutput) board->print_board();
 
         std::vector<ActionRequest> move_enums(tanks_by_birth.size(), ActionRequest::DoNothing);
         std::vector<std::string> moves(tanks_by_birth.size());
@@ -131,9 +201,18 @@ for (size_t i = 0; i < map_width; ++i) {
                 move_enums[i] = action;
                 moves[i] = actionToString(action);
                 turn_success[i] = true;
+                if (DEBUG_ENABLED) {
+                    std::cout << "[DEBUG] Tank P" << t->player_number 
+                              << " T" << t->tank_number 
+                              << " chose: " << moves[i] << "\n";
+                }
             } else {
                 moves[i] = "killed";
                 move_enums[i] = ActionRequest::DoNothing;
+                if (DEBUG_ENABLED) {
+                    std::cout << "[DEBUG] Tank P" << t->player_number 
+                              << " T" << t->tank_number << " already dead\n";
+                }
             }
         }
 
@@ -142,20 +221,28 @@ for (size_t i = 0; i < map_width; ++i) {
             tank* t = tanks_by_birth[i];
             if (t->alive) {
                 if (moves[i] == "update") {
-                        if (!satelliteCopyReady) {
-                            static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
-                            satelliteCopyReady = true;
-                        }
-                        if (t->symbol == '1')
-                            player1.updateTankWithBattleInfo(*t->algo, *satview);
-                        else
-                            player2.updateTankWithBattleInfo(*t->algo, *satview);
-                        continue; // skip actual move this turn
+                    if (!satelliteCopyReady) {
+                        static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
+                        satelliteCopyReady = true;
                     }
+                  if (t->player_number == 1) {
+                    player1.updateTankWithBattleInfo(*t->algo, *satview);
+                } else if (t->player_number == 2) {
+                    player2.updateTankWithBattleInfo(*t->algo, *satview);
+                } else {
+                    throw std::runtime_error("Invalid player_number for tank");
+                }
+                continue;
+                }
                 bool ok = t->turn(board.get(), moves[i]);
                 if (!ok) {
                     moves[i] += " (ignored)";
                     turn_success[i] = false;
+                    if (DEBUG_ENABLED) {
+                        std::cout << "[DEBUG] Tank P" << t->player_number 
+                                  << " T" << t->tank_number 
+                                  << " invalid move: " << moves[i] << "\n";
+                    }
                 }
             }
         }
@@ -173,79 +260,59 @@ for (size_t i = 0; i < map_width; ++i) {
             if (recently_killed.count(t)) {
                 moves[i] += " (killed)";
                 killed_tanks.insert(t);
-            }
-        }
-
-        // Output turn summary if verbose
-        if (verboseOutput) {
-            std::vector<std::string> move_names;
-            for (size_t i = 0; i < moves.size(); ++i) {
-                tank* t = tanks_by_birth[i];
-                if (!t->alive) {
-                    if (moves[i].find("(killed)") != std::string::npos) {
-                        auto pos = moves[i].find(" (killed)");
-                        std::string cmd = moves[i].substr(0, pos);
-                        std::string out = commandStringToEnumName(cmd);
-                        if (moves[i].find("(ignored)") != std::string::npos)
-                            out += " (ignored)";
-                        out += " (killed)";
-                        move_names.push_back(out);
-                    } else {
-                        move_names.push_back("killed");
-                    }
-                } else {
-                    std::string out = commandStringToEnumName(moves[i]);
-                    if (moves[i].find("ignored") != std::string::npos)
-                        out += " (ignored)";
-                    move_names.push_back(out);
+                if (DEBUG_ENABLED) {
+                    std::cout << "[DEBUG] Tank P" << t->player_number 
+                              << " T" << t->tank_number << " was killed\n";
                 }
             }
-            game_output << join(move_names, ", ") << std::endl;
         }
 
         ++round_counter;
+
+        if (DEBUG_ENABLED) {
+            int alive1 = board->countAliveTanksForPlayer('1');
+            int alive2 = board->countAliveTanksForPlayer('2');
+            std::cout << "[DEBUG] End of round " << round_counter 
+                      << " | Alive: P1=" << alive1 << ", P2=" << alive2 << "\n";
+        }
     }
 
     // Count survivors
     int p1_alive = board->countAliveTanksForPlayer('1');
     int p2_alive = board->countAliveTanksForPlayer('2');
 
-    // Fill result
-    // Fill result
-GameResult result;
-result.rounds = round_counter;   // <-- your struct uses "rounds", not "steps"
+    GameResult result;
+    result.rounds = round_counter;
 
-// Winner: 1 = player1, 2 = player2, 0 = tie
-if (p1_alive > p2_alive) result.winner = 1;
-else if (p2_alive > p1_alive) result.winner = 2;
-else result.winner = 0; // tie
+    if (p1_alive > p2_alive) result.winner = 1;
+    else if (p2_alive > p1_alive) result.winner = 2;
+    else result.winner = 0;
 
-if (round_counter >= (int)max_steps)
-    result.reason = GameResult::MAX_STEPS;
-else if (p1_alive == 0 && p2_alive == 0)
-    result.reason = GameResult::ALL_TANKS_DEAD;
-else
-    result.reason = GameResult::ZERO_SHELLS;
+    if (round_counter >= (int)max_steps)
+        result.reason = GameResult::MAX_STEPS;
+    else if (p1_alive == 0 && p2_alive == 0)
+        result.reason = GameResult::ALL_TANKS_DEAD;
+    else
+        result.reason = GameResult::ZERO_SHELLS;
 
-// fill remaining tanks
-result.remaining_tanks = { (size_t)p1_alive, (size_t)p2_alive };
+    result.remaining_tanks = { (size_t)p1_alive, (size_t)p2_alive };
 
-// snapshot of final board (if you want to keep game state)
-if (satview) {
-    result.gameState = std::move(satview); // transfer ownership into result
-}
+    if (satview) {
+        result.gameState = std::move(satview);
+    }
 
-    // Final verbose message
-    if (verboseOutput) {
-        if (result.winner == 0)  // Changed from -1 to 0 for tie
-            game_output << "Tie\n";
-        else
-            game_output << "Winner: Player " << result.winner << "\n";  // Removed +1
+    if (DEBUG_ENABLED) {
+        std::cout << "[DEBUG] Game finished after " << result.rounds 
+                  << " rounds | Winner=" << result.winner 
+                  << " | Reason=" << (result.reason == GameResult::ALL_TANKS_DEAD ? "ALL_TANKS_DEAD" :
+                                      result.reason == GameResult::MAX_STEPS ? "MAX_STEPS" :
+                                      result.reason == GameResult::ZERO_SHELLS ? "ZERO_SHELLS" : "UNKNOWN")
+                  << " | P1 alive=" << p1_alive 
+                  << " | P2 alive=" << p2_alive << "\n";
     }
 
     return result;
 }
-
 
 std::string GameManager::commandStringToEnumName(const std::string& cmd) {
     if (cmd.find("fw") == 0) return "MoveForward";

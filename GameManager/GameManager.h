@@ -31,6 +31,7 @@ public:
     ) override;
 
 private:
+    std::vector<std::unique_ptr<TankAlgorithm>> tankAlgorithms;
     std::string commandStringToEnumName(const std::string& cmd);
 
     std::unique_ptr<game_board> board;
