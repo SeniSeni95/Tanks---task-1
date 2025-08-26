@@ -1,7 +1,0 @@
-Invalid character found at 1, 5
-Invalid character found at 2, 6
-More than one '1' found at 3, 3
-Invalid character found at 3, 6
-Invalid character found at 3, 7
-Invalid character found at 4, 6
-Invalid character found at 5, 8

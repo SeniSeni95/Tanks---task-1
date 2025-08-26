@@ -76,7 +76,7 @@ for (size_t i = 0; i < map_width; ++i) {
         }
        else if (c == '1' || c == '2') {
     int player_idx = (c == '1' ? 0 : 1);   // 0 for Player1, 1 for Player2
-    int tank_number = tank_counters[player_idx]++;
+    int tank_number = ++tank_counters[player_idx];
 
     int directionx = (player_idx == 0) ? -1 : 1;  // Player1 faces left, Player2 faces right
 

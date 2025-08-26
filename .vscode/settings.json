@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.h": "cpp",
         "limits": "cpp",
         "memory": "cpp",
         "atomic": "cpp",
@@ -68,6 +69,28 @@
         "xlocnum": "cpp",
         "xloctime": "cpp",
         "xstring": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "__bit_reference": "cpp",
+        "__config": "cpp",
+        "__hash_table": "cpp",
+        "__locale": "cpp",
+        "__node_handle": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "cerrno": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "execution": "cpp",
+        "mutex": "cpp",
+        "print": "cpp",
+        "stack": "cpp",
+        "string_view": "cpp",
+        "variant": "cpp",
+        "complex": "cpp",
+        "version": "cpp",
+        "__verbose_abort": "cpp",
+        "thread": "cpp"
     }
 }

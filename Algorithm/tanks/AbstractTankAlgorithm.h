@@ -8,7 +8,7 @@
 using namespace std;
 
 class AbstractTankAlgorithm : public TankAlgorithm {
-private:
+public:
     int playerIndex; // Player index
     int tankIndex; // Tank index
     int stepsSinceBoardUpdate = 0; // Steps since the last board update

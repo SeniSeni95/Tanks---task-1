@@ -1,5 +1,6 @@
 #include "AbstractPlayer.h"
 #include <iostream>  // Added for debugging output
+#include "../tanks/AbstractTankAlgorithm.h"
 
 using namespace std;
 
@@ -93,26 +94,45 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
         updateBoard(satellite_view);
     }
 
-    // Just confirm that our own tank still exists in the view
-    bool foundSelf = false;
-    for (size_t i = 0; i < width; ++i) {
-        for (size_t j = 0; j < height; ++j) {
-            char sym = satellite_view.getObjectAt(i, j);
-            if (isTank(sym, player_index)) {
-                foundSelf = true;
-                break;
-            }
-        }
-        if (foundSelf) break;
+    if (DEBUG_ENABLED) {
+        std::cout << "[DEBUG] updateTankWithBattleInfo: completed update for player "
+                  << player_index << "\n";
     }
 
-    if (!foundSelf) {
-        throw std::runtime_error("Self tank not found in satellite view for player " +
-                                 std::to_string(player_index));
+    // Clone board
+    unique_ptr<game_board> board_copy = board->dummy_copy();
+    // Create a BattleInfo object with the cloned board
+    MyBattleInfo battle_info(std::move(board_copy));
+    // Update the tank's algorithm with the battle info
+    tankAlg.updateBattleInfo(battle_info);
+
+    // The tank alg will give us some extra info it knows about its own tank
+    tuple<int, int, int, int, string> self_tank = battle_info.getSelfTank();
+
+    int x = get<0>(self_tank);
+    int y = get<1>(self_tank);
+
+    game_object *obj = board->get_cell(x, y).get_Object();
+    if (!obj)
+    {
+        throw std::runtime_error("No object at self tank's position");
     }
 
-    // std::cout << "[DEBUG] updateTankWithBattleInfo: completed update for player "
-            //   << player_index << "\n";
+    // Update the tank's position and direction
+    int direction_x = get<2>(self_tank);
+    int direction_y = get<3>(self_tank);
+    string gear = get<4>(self_tank);
+    tank *t = dynamic_cast<tank *>(obj);
+    if (!t)
+    {
+        throw std::runtime_error("Object at self tank's position is not a tank");
+    }
+
+    t->set_x(x);
+    t->set_y(y);
+    t->directionx = direction_x;
+    t->directiony = direction_y;
+    t->gear = gear;
 }
 
 

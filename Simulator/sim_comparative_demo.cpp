@@ -116,7 +116,7 @@ LoadedMap buildMapFromFile(const std::string& filename) {
                 current.add_Object(std::make_shared<mine>('@', &current));
             } else if (ch == '1' || ch == '2') {
                 int player_number = (ch == '1') ? 0 : 1;
-                int tank_number = tank_counters[player_number]++;
+                int tank_number = ++tank_counters[player_number];
                 int directionx = (player_number == 0) ? -1 : 1;
                 auto tank_ptr = std::make_shared<tank>(
                     ch, player_number + 1, tank_number,
@@ -330,11 +330,14 @@ int main(int argc, char** argv) {
         return pf.create(p, x, y, maxS, numS);
     };
     MyTankAlgorithmFactory tankFactory = [](int player, int tank) -> std::unique_ptr<TankAlgorithm> {
+        std::unique_ptr<AbstractTankAlgorithm> algo;
         if (player == 1) {
-            return std::make_unique<AggressiveTank>(player, tank);
+            algo = std::make_unique<AggressiveTank>(player, tank);
         } else {
-            return std::make_unique<CalmTank>(player, tank);
+            algo = std::make_unique<CalmTank>(player, tank);
         }
+        algo->initialize();
+        return algo;
     };
 
     // Detect GM's

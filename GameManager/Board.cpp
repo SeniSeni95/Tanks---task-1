@@ -406,7 +406,7 @@ std::unique_ptr<game_board> game_board::generate_board(
                 case '1':
                 case '2': {
                     int player_index = (ch == '1') ? 0 : 1;
-                    int tank_number = tank_counters[player_index++];
+                    int tank_number = ++tank_counters[player_index];
 
                     // Find matching tank data
                     auto it = std::find_if(tank_data.begin(), tank_data.end(),
@@ -424,7 +424,7 @@ std::unique_ptr<game_board> game_board::generate_board(
                     }
 
                     auto t_ptr = std::make_shared<tank>(
-                        ch, player_index, tank_number,
+                        ch, player_index + 1, tank_number,
                         dx, dy, &current, nullptr
                     );
                     t_ptr->set_x(i);

@@ -85,7 +85,7 @@ LoadedMap buildMapFromFile(const std::string& filename) {
                 current.add_Object(std::make_shared<mine>('@', &current));
             } else if (ch == '1' || ch == '2') {
                 int player_number = (ch == '1') ? 0 : 1;
-                int tank_number = tank_counters[player_number]++;
+                int tank_number = ++tank_counters[player_number];
                 int dirx = (player_number == 0) ? -1 : 1;
                 auto tank_ptr = std::make_shared<tank>(
                     ch, player_number + 1, tank_number,
@@ -215,10 +215,14 @@ int main(int argc, char** argv) {
     // Factories
     MyPlayerFactory pf;
     MyTankAlgorithmFactory tankFactoryAggressive = [](int player, int tank) -> std::unique_ptr<TankAlgorithm> {
-        return std::make_unique<AggressiveTank>(player, tank);
+        std::unique_ptr<AbstractTankAlgorithm> algo = std::make_unique<AggressiveTank>(player, tank);
+        algo->initialize();
+        return algo;
     };
     MyTankAlgorithmFactory tankFactoryCalm = [](int player, int tank) -> std::unique_ptr<TankAlgorithm> {
-        return std::make_unique<CalmTank>(player, tank);
+        std::unique_ptr<AbstractTankAlgorithm> algo = std::make_unique<CalmTank>(player, tank);
+        algo->initialize();
+        return algo;
     };
 
     // Threaded loop

@@ -1,6 +1,8 @@
 #include "algorithms.h"
 #include <queue>
 
+static const bool DEBUG_ENABLED = false;
+
 algorithm::algorithm() {}
 
 void algorithm::other_tanks_turn(game_board* board, shared_ptr<tank> self) {
@@ -109,7 +111,7 @@ std::pair<std::string, double> algorithm::decide_move(game_board* board, shared_
     double skip = score_skip(board, self, lookahead, stepsSinceBoardUpdate);
     double update_board = score_update_board(board, self, lookahead);
 
-    if (first_call) {
+    if (DEBUG_ENABLED && first_call) {
         cout << "\nScores for tank " << self->symbol << " at (" << self->get_x() << ", " << self->get_y() << "):" << endl;
         cout << "Forward: " << forward << endl;
         cout << "Backward: " << backward << endl;
