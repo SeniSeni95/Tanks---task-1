@@ -81,21 +81,15 @@ AbstractPlayer::AbstractPlayer(int player_index, size_t x, size_t y,
 
 void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteView &satellite_view)
 {
-    if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] updateTankWithBattleInfo: starting update for player "
-                  << player_index << "\n";
-    }
+    // std::cout << "[DEBUG] updateTankWithBattleInfo: starting update for player "
+            //   << player_index << "\n";
 
     if (!boardInitialized) {
-        if (DEBUG_ENABLED) {
-            std::cout << "[DEBUG] updateTankWithBattleInfo: board not initialized, calling initBoard\n";
-        }
+        // std::cout << "[DEBUG] updateTankWithBattleInfo: board not initialized, calling initBoard\n";
         initBoard(satellite_view);
         boardInitialized = true;
     } else {
-        if (DEBUG_ENABLED) {
-            std::cout << "[DEBUG] updateTankWithBattleInfo: board already initialized, calling updateBoard\n";
-        }
+        // std::cout << "[DEBUG] updateTankWithBattleInfo: board already initialized, calling updateBoard\n";
         updateBoard(satellite_view);
     }
 
@@ -117,10 +111,8 @@ void AbstractPlayer::updateTankWithBattleInfo(TankAlgorithm &tankAlg, SatelliteV
                                  std::to_string(player_index));
     }
 
-    if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] updateTankWithBattleInfo: completed update for player "
-                  << player_index << "\n";
-    }
+    // std::cout << "[DEBUG] updateTankWithBattleInfo: completed update for player "
+            //   << player_index << "\n";
 }
 
 

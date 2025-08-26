@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include <map>
 #include "Board.h"
 #include "../common/ActionUtils.h"
 #include "../common/PlayerFactory.h"
@@ -13,9 +14,9 @@
 #include "../common/ActionRequest.h"
 #include "../algorithm/MyTankAlgorithmFactory.h"
 
-class GameManager11 : public AbstractGameManager {  // <-- Fixed class name
+class GameManager4 : public AbstractGameManager {
 public:
-    GameManager11(std::unique_ptr<PlayerFactory> playerFactory,  // <-- Fixed parameter type
+    GameManager4(PlayerFactory playerFactory,
                  MyTankAlgorithmFactory tankFactory,
                  bool verbose);
 
@@ -31,17 +32,22 @@ public:
     ) override;
 
 private:
-    std::string actionToString(ActionRequest action);           // <-- Added missing method
-    ActionRequest stringToAction(const std::string& actionStr); // <-- Added missing method
+    std::vector<std::unique_ptr<TankAlgorithm>> tankAlgorithms;
     std::string commandStringToEnumName(const std::string& cmd);
+    std::string actionToString(ActionRequest action);
+    ActionRequest stringToAction(const std::string& actionStr);
 
     std::unique_ptr<game_board> board;
     std::unique_ptr<SatelliteView> satview; // for updates during turns
     bool satelliteCopyReady = false;
 
-    std::unique_ptr<PlayerFactory> playerFactory;  // <-- Fixed member type
+    PlayerFactory playerFactory;
     MyTankAlgorithmFactory myTankAlgorithmFactory;
 
     bool verboseOutput = false;
     std::ofstream verboseFile;
+
+    // GM2 specific: max turns per tank tracking
+    static const int MAX_TURNS_PER_TANK = 5;
+    std::map<tank*, int> tank_turn_counters;
 };
