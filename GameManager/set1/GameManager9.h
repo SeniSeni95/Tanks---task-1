@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 #include <fstream>
-#include <map>
 #include "Board.h"
 #include "../common/ActionUtils.h"
 #include "../common/PlayerFactory.h"
@@ -17,8 +16,8 @@
 class GameManager9 : public AbstractGameManager {
 public:
     GameManager9(PlayerFactory playerFactory,
-                 MyTankAlgorithmFactory tankFactory,
-                 bool verbose);
+                MyTankAlgorithmFactory tankFactory,
+                bool verbose);
 
     GameResult run(
         size_t map_width, size_t map_height,
@@ -34,8 +33,6 @@ public:
 private:
     std::vector<std::unique_ptr<TankAlgorithm>> tankAlgorithms;
     std::string commandStringToEnumName(const std::string& cmd);
-    std::string actionToString(ActionRequest action);
-    ActionRequest stringToAction(const std::string& actionStr);
 
     std::unique_ptr<game_board> board;
     std::unique_ptr<SatelliteView> satview; // for updates during turns
@@ -46,8 +43,5 @@ private:
 
     bool verboseOutput = false;
     std::ofstream verboseFile;
-
-    // GM2 specific: max turns per tank tracking
-    static const int MAX_TURNS_PER_TANK = 5;
-    std::map<tank*, int> tank_turn_counters;
 };
+

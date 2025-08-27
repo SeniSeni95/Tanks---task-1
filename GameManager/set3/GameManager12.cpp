@@ -1,4 +1,4 @@
-#include "GameManager12.h"  // Changed from GameManager.h
+#include "GameManager12.h"
 #include "../algorithm/MyTankAlgorithmFactory.h"  // Fix include path
 #include "../algorithm/MyPlayerFactory.h"
 #include "../common/PlayerFactory.h"         // Fix include path
@@ -17,46 +17,39 @@
 #include <unordered_set>
 #include "utils.h"                 // Fix include path
 
-using namespace std;
-
 // Debug control - set to true to enable debugging, false to disable
 static const bool DEBUG_ENABLED = false;
 
-GameManager12::GameManager12(PlayerFactory playerFactory,  // Changed from GameManager
-                           MyTankAlgorithmFactory tankFactory,
-                           bool verbose)
+GameManager12::GameManager12(PlayerFactory playerFactory,
+                         MyTankAlgorithmFactory tankFactory,
+                         bool verbose)
     :  playerFactory(std::move(playerFactory)),
       myTankAlgorithmFactory(std::move(tankFactory)), // use lowercase variable name to match header
       verboseOutput(verbose) {
     satview = std::make_unique<SatelliteViewImpl>();
     if (verboseOutput) {
-        std::string outName = "output_verbose_GM12.txt";  // GM12 specific filename
+        std::string outName = "output_verbose_gm122.txt";
         verboseFile.open(outName);
         if (!verboseFile.is_open()) {
-            std::cerr << "[ERROR] GM12: could not open verbose log file" << std::endl;
+            std::cerr << "[ERROR] gm122: could not open verbose log file" << std::endl;
             verboseOutput = false;
         }
     }
-    
-    if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] GM12: GameManager12 initialized with max turns per tank = " 
-                  << MAX_TURNS_PER_TANK << std::endl;
-    }
 }
 
-GameResult GameManager12::run(  // Changed from GameManager
+GameResult GameManager12::run(
     size_t map_width, size_t map_height,
     const SatelliteView& map,
     std::string map_name,
     size_t max_steps, size_t num_shells,
     Player& player1, std::string name1,
     Player& player2, std::string name2,
-    TankAlgorithmFactory player1_tank_algo_factory,  // Fixed parameter type
-    TankAlgorithmFactory player2_tank_algo_factory   // Fixed parameter type
+    MyTankAlgorithmFactory player1_tank_algo_factory,
+    MyTankAlgorithmFactory player2_tank_algo_factory
 ) {
     std::vector<int> tank_counters(3, 0);
     if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] GM12: Building board from SatelliteView...\n";
+        std::cout << "[DEBUG] gm122: Building board from SatelliteView...\n";
     }
 
 // Prepare cells
@@ -93,18 +86,18 @@ for (size_t i = 0; i < map_width; ++i) {
     row.back().add_Object(t);
     tempTanks.push_back(t);
 
-    // Algorithms created with factories
-    auto algo = (player_idx == 0
-        ? player1_tank_algo_factory(1, tank_number)  // Player 1
-        : player2_tank_algo_factory(2, tank_number)  // Player 2
-    );
+    // Algorithms always created with 0/1 indices (NOT 1/2)
+  auto algo = (player_idx == 0
+    ? player1_tank_algo_factory(1, tank_number)  // Player 1
+    : player2_tank_algo_factory(2, tank_number)  // Player 2
+);
 
     if (algo) {
         t->algo = algo.get();
         tempAlgos.push_back(std::move(algo));
     } else {
         if (DEBUG_ENABLED) {
-            std::cerr << "[ERROR] GM12: Tank factory returned nullptr for P"
+            std::cerr << "[ERROR] gm122: Tank factory returned nullptr for P"
                       << (player_idx + 1) << " T" << tank_number << "\n";
         }
     }
@@ -125,13 +118,8 @@ for (auto& algo : tempAlgos) {
     tankAlgorithms.push_back(std::move(algo));
 }
 
-// Initialize turn counters for each tank (GM12 specific)
-for (const auto& t_ptr : board->tanks) {
-    tank_turn_counters[t_ptr.get()] = 0;
-}
-
 if (DEBUG_ENABLED) {
-    std::cout << "[DEBUG] GM12: Board created, tanks=" << board->tanks.size() << "\n";
+    std::cout << "[DEBUG] gm122: Board created, tanks=" << board->tanks.size() << "\n";
 }
 
 // 🔑 Initialize SatelliteView with this new board
@@ -139,21 +127,21 @@ if (satview) {
     static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
     satelliteCopyReady = true;
     if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] GM12: SatelliteView initialized with board copy\n";
+        std::cout << "[DEBUG] gm122: SatelliteView initialized with board copy\n";
     }
 }
 
     std::ofstream game_output;
     if (verboseOutput) {
-        std::string output_filename = "output_GM12_" + map_name + ".txt";  // GM12 specific filename
+        std::string output_filename = "output_gm122_" + map_name + ".txt";
         game_output.open(output_filename);
         if (!game_output.is_open()) {
-            std::cerr << "[ERROR] GM12: Failed to open verbose log file: " << output_filename << std::endl;
+            std::cerr << "[ERROR] gm122: Failed to open verbose log file: " << output_filename << std::endl;
             verboseOutput = false;
         }
     }
 
-    int time_out_steps = (int)num_shells; max_steps=7;
+    int time_out_steps = (int)num_shells;
     bool game_over = false;
 
     // Order tanks by birth
@@ -171,14 +159,13 @@ if (satview) {
     std::unordered_set<tank*> recently_killed;
 
     if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] GM12: Entering game loop (max_steps=" << max_steps 
-                  << ", num_shells=" << num_shells 
-                  << ", max_turns_per_tank=" << MAX_TURNS_PER_TANK << ")\n";
+        std::cout << "[DEBUG] gm122: Entering game loop (max_steps=" << max_steps 
+                  << ", num_shells=" << num_shells << ")\n";
     }
 
-    while (time_out_steps >= 0 && !game_over && round_counter < (int)max_steps) {
+    while (time_out_steps >= 0 && !game_over && round_counter < 6) {
         if (DEBUG_ENABLED) {
-            std::cout << "\n[DEBUG] GM12: --- Round " << (round_counter+1) << " ---\n";
+            std::cout << "\n[DEBUG] gm122: --- Round " << (round_counter+1) << " ---\n";
         }
         satelliteCopyReady = false;
 
@@ -193,7 +180,7 @@ if (satview) {
         if (out_of_shells) {
             time_out_steps--;
             if (DEBUG_ENABLED) {
-                std::cout << "[DEBUG] GM12: All tanks are out of shells. time_out_steps=" 
+                std::cout << "[DEBUG] gm122: All tanks are out of shells. time_out_steps=" 
                           << time_out_steps << "\n";
             }
         }
@@ -210,36 +197,20 @@ if (satview) {
         for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
             tank* t = tanks_by_birth[i];
             if (t->alive) {
-                // GM12 specific: Check if tank has exceeded max turns
-                if (tank_turn_counters[t] >= MAX_TURNS_PER_TANK) {
-                    moves[i] = "max_turns_reached";
-                    move_enums[i] = ActionRequest::DoNothing;
-                    turn_success[i] = false;
-                    if (DEBUG_ENABLED) {
-                        std::cout << "[DEBUG] GM12: Tank P" << t->player_number 
-                                  << " T" << t->tank_number 
-                                  << " reached max turns (" << MAX_TURNS_PER_TANK << ")\n";
-                    }
-                    continue;
-                }
-
                 ActionRequest action = t->algo->getAction();
                 move_enums[i] = action;
                 moves[i] = actionToString(action);
                 turn_success[i] = true;
-                tank_turn_counters[t]++; // GM12 specific: Increment turn counter
-                
                 if (DEBUG_ENABLED) {
-                    std::cout << "[DEBUG] GM12: Tank P" << t->player_number 
+                    std::cout << "[DEBUG] gm122: Tank P" << t->player_number 
                               << " T" << t->tank_number 
-                              << " chose: " << moves[i] 
-                              << " (turn " << tank_turn_counters[t] << "/" << MAX_TURNS_PER_TANK << ")\n";
+                              << " chose: " << moves[i] << "\n";
                 }
             } else {
                 moves[i] = "killed";
                 move_enums[i] = ActionRequest::DoNothing;
                 if (DEBUG_ENABLED) {
-                    std::cout << "[DEBUG] GM12: Tank P" << t->player_number 
+                    std::cout << "[DEBUG] gm122: Tank P" << t->player_number 
                               << " T" << t->tank_number << " already dead\n";
                 }
             }
@@ -248,7 +219,7 @@ if (satview) {
         // Execute moves
         for (size_t i = 0; i < tanks_by_birth.size(); ++i) {
             tank* t = tanks_by_birth[i];
-            if (t->alive && moves[i] != "max_turns_reached") {
+            if (t->alive) {
                 if (moves[i] == "update") {
                     if (!satelliteCopyReady) {
                         static_cast<SatelliteViewImpl*>(satview.get())->updateCopy(*board);
@@ -268,7 +239,7 @@ if (satview) {
                     moves[i] += " (ignored)";
                     turn_success[i] = false;
                     if (DEBUG_ENABLED) {
-                        std::cout << "[DEBUG] GM12: Tank P" << t->player_number 
+                        std::cout << "[DEBUG] gm122: Tank P" << t->player_number 
                                   << " T" << t->tank_number 
                                   << " invalid move: " << moves[i] << "\n";
                     }
@@ -290,7 +261,7 @@ if (satview) {
                 moves[i] += " (killed)";
                 killed_tanks.insert(t);
                 if (DEBUG_ENABLED) {
-                    std::cout << "[DEBUG] GM12: Tank P" << t->player_number 
+                    std::cout << "[DEBUG] gm122: Tank P" << t->player_number 
                               << " T" << t->tank_number << " was killed\n";
                 }
             }
@@ -301,7 +272,7 @@ if (satview) {
         if (DEBUG_ENABLED) {
             int alive1 = board->countAliveTanksForPlayer('1');
             int alive2 = board->countAliveTanksForPlayer('2');
-            std::cout << "[DEBUG] GM12: End of round " << round_counter 
+            std::cout << "[DEBUG] gm122: End of round " << round_counter 
                       << " | Alive: P1=" << alive1 << ", P2=" << alive2 << "\n";
         }
     }
@@ -331,7 +302,7 @@ if (satview) {
     }
 
     if (DEBUG_ENABLED) {
-        std::cout << "[DEBUG] GM12: Game finished after " << result.rounds 
+        std::cout << "[DEBUG] gm122: Game finished after " << result.rounds 
                   << " rounds | Winner=" << result.winner 
                   << " | Reason=" << (result.reason == GameResult::ALL_TANKS_DEAD ? "ALL_TANKS_DEAD" :
                                       result.reason == GameResult::MAX_STEPS ? "MAX_STEPS" :
@@ -343,7 +314,7 @@ if (satview) {
     return result;
 }
 
-std::string GameManager12::commandStringToEnumName(const std::string& cmd) {  // Changed from GameManager
+std::string GameManager12::commandStringToEnumName(const std::string& cmd) {
     if (cmd.find("fw") == 0) return "MoveForward";
     if (cmd.find("bw") == 0) return "MoveBackward";
     if (cmd.find("r4l") == 0) return "RotateLeft90";
@@ -356,31 +327,4 @@ std::string GameManager12::commandStringToEnumName(const std::string& cmd) {  //
     return cmd; // fallback for "killed" or unknown
 }
 
-std::string GameManager12::actionToString(ActionRequest action) {  // Changed from GameManager
-    switch (action) {
-        case ActionRequest::MoveForward: return "fw";
-        case ActionRequest::MoveBackward: return "bw";
-        case ActionRequest::RotateLeft90: return "r4l";
-        case ActionRequest::RotateRight90: return "r4r";
-        case ActionRequest::RotateLeft45: return "r8l";
-        case ActionRequest::RotateRight45: return "r8r";
-        case ActionRequest::Shoot: return "shoot";
-        case ActionRequest::GetBattleInfo: return "update";
-        case ActionRequest::DoNothing: return "skip";
-        default: return "skip";
-    }
-}
-
-ActionRequest GameManager12::stringToAction(const std::string& actionStr) {  // Changed from GameManager
-    if (actionStr == "fw") return ActionRequest::MoveForward;
-    if (actionStr == "bw") return ActionRequest::MoveBackward;
-    if (actionStr == "r4l") return ActionRequest::RotateLeft90;
-    if (actionStr == "r4r") return ActionRequest::RotateRight90;
-    if (actionStr == "r8l") return ActionRequest::RotateLeft45;
-    if (actionStr == "r8r") return ActionRequest::RotateRight45;
-    if (actionStr == "shoot") return ActionRequest::Shoot;
-    if (actionStr == "update") return ActionRequest::GetBattleInfo;
-    if (actionStr == "skip") return ActionRequest::DoNothing;
-    return ActionRequest::DoNothing;
-}
 

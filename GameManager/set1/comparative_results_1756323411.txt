@@ -2,7 +2,7 @@ game_map=maps/map1.txt
 algorithm1=AggressiveTank.so
 algorithm2=CalmTank.so
 
-GM1,GM4,GM9,GM8
+GM1,GM4,GM8,GM9
 Player 2 won - ZERO_SHELLS
 4
 ####    
