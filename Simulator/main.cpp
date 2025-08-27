@@ -10,8 +10,9 @@
 #include <sstream>
 #include <chrono>
 #include <dlfcn.h>
+#include <map>
 #include <set>
-
+#include "GameManagerRegistrar.h"
 #include "../common/AbstractGameManager.h"
 #include "../common/ActionRequest.h"
 #include "../common/Player.h"
@@ -170,16 +171,25 @@ int main(int argc, char* argv[]) {
         std::string mapfile=args["game_map"];
         std::string gmFolder=args["game_managers_folder"];
         std::string algo1=args["algorithm1"], algo2=args["algorithm2"];
-        int numThreads=args.count("num_threads")?std::stoi(args["num_threads"]):4;
+        size_t numThreads = args.count("num_threads") ? std::stoul(args["num_threads"]) : 1;
 
         std::cout<<"[MODE] Comparative\n";
         if (verbose) std::cout<<"[FLAG] Verbose enabled\n";
 
-        // load the 2 algorithms
+        // load the 2 algorithms once
+        AlgorithmRegistrar::getAlgorithmRegistrar().clear();
         loadSO(algo1,algo1);
         loadSO(algo2,algo2);
+        auto& registrar = AlgorithmRegistrar::getAlgorithmRegistrar();
+        if (registrar.count() < 2) {
+            std::cerr<<"Need two algorithms\n";
+            return 1;
+        }
+        auto it = registrar.begin();
+        auto algoEntry1 = *it;
+        auto algoEntry2 = *(++it);
 
-        // load all GMs
+        // scan for all GMs
         std::vector<std::string> gmFiles;
         for (auto& entry: fs::directory_iterator(gmFolder)) {
             if (entry.path().extension()==".so") gmFiles.push_back(entry.path().string());
@@ -192,17 +202,9 @@ int main(int argc, char* argv[]) {
 
         auto worker = [&](const std::string& gmFile){
             loadSO(gmFile, gmFile);
-            auto& registrar = AlgorithmRegistrar::getAlgorithmRegistrar();
-            if (registrar.count()<1) return;
-
-            // assume the last registration was a GM
-            auto gmFactoryEntry = *(registrar.end()-1);
-            auto gm = gmFactoryEntry(); // unique_ptr<AbstractGameManager>
-
-            // create players from the algorithms (first two)
-            auto it = registrar.begin();
-            auto& algoEntry1 = *it;
-            auto& algoEntry2 = *(++it);
+            auto& gmReg = GameManagerRegistrar::get();
+            if (gmReg.empty()) return;
+            auto gm = gmReg.last()();
 
             PlayerFactory pf = [&](int p, size_t x, size_t y, size_t maxS, size_t numS){
                 if (p==1) return algoEntry1.createPlayer(p,x,y,maxS,numS);
@@ -213,14 +215,16 @@ int main(int argc, char* argv[]) {
 
             LoadedMap map=buildMapFromFile(mapfile,pf);
 
-            GameResult res=gm->run(
-                map.width,map.height,map.view,
-                map.maxSteps,map.numShells,
-                *map.p1,*map.p2,
-                tankFactory1,tankFactory2);
+           GameResult res = gm->run(
+            map.width, map.height, map.view, mapfile,
+            map.maxSteps, map.numShells,
+            *map.p1, "Algorithm1",
+            *map.p2, "Algorithm2",
+            tankFactory1, tankFactory2
+                );
 
             std::lock_guard<std::mutex> lk(resultsMutex);
-            allResults.push_back(res);
+            allResults.push_back(std::move(res));
         };
 
         size_t active=0;
@@ -249,16 +253,20 @@ int main(int argc, char* argv[]) {
         std::string mapsFolder=args["game_maps_folder"];
         std::string gmFile=args["game_manager"];
         std::string algFolder=args["algorithms_folder"];
-        int numThreads=args.count("num_threads")?std::stoi(args["num_threads"]):4;
+        int numThreads=args.count("num_threads")?std::stoi(args["num_threads"]):1;
+
 
         std::cout<<"[MODE] Competition\n";
         if (verbose) std::cout<<"[FLAG] Verbose enabled\n";
 
         // load GM
         loadSO(gmFile,gmFile);
-        auto& registrar=AlgorithmRegistrar::getAlgorithmRegistrar();
-        auto gmFactoryEntry = *(registrar.end()-1);
-        auto gm = gmFactoryEntry();
+        auto& gmReg = GameManagerRegistrar::get();
+        if (gmReg.empty()) {
+            std::cerr << "No game managers registered!\n";
+            return 1;
+        }
+        auto gm = gmReg.last()();  
 
         // load algorithms
         std::vector<std::string> algFiles;
@@ -279,9 +287,11 @@ int main(int argc, char* argv[]) {
         std::vector<std::thread> threads;
 
         auto worker = [&](const std::string& mapFile,const std::string& algoFile){
+            AlgorithmRegistrar::getAlgorithmRegistrar().clear();
             loadSO(algoFile,algoFile);
             auto& reg=AlgorithmRegistrar::getAlgorithmRegistrar();
-            auto& algoEntry=*reg.begin();
+            if (reg.count() == 0) return;
+            auto& algoEntry=*(reg.end()-1);
 
             PlayerFactory pf=[&](int p,size_t x,size_t y,size_t maxS,size_t numS){
                 return algoEntry.createPlayer(p,x,y,maxS,numS);
@@ -290,11 +300,13 @@ int main(int argc, char* argv[]) {
 
             LoadedMap map=buildMapFromFile(mapFile,pf);
 
-            GameResult res=gm->run(
-                map.width,map.height,map.view,
-                map.maxSteps,map.numShells,
-                *map.p1,*map.p2,
-                tankFactory,tankFactory);
+            GameResult res = gm->run(
+            map.width, map.height, map.view, mapFile,
+            map.maxSteps, map.numShells,
+            *map.p1, algoFile,
+            *map.p2, algoFile,
+            tankFactory, tankFactory
+        );
 
             std::lock_guard<std::mutex> lk(scoreMutex);
             if (res.winner==1) scores[algoFile]+=3;
@@ -324,19 +336,16 @@ int main(int argc, char* argv[]) {
 
 
 
-// g++ -std=c++17 -I. -I./common -I./GameManager -I./Simulator Simulator/main.cpp GameManager/Board.cpp GameManager/GameObject.cpp GameManager/utils.cpp GameManager/Vector2D.cpp GameManager/SatelliteViewImpl.cpp algorithm/MyPlayerFactory.cpp -ldl -pthread -o simulator
+/*
 
-// ./simulator -comparative \
-//     game_map=maps/map1.txt \
-//     game_managers_folder=GameManagersSO \
-//     algorithm1=Algorithm_A.so \
-//     algorithm2=Algorithm_B.so \
-//     num_threads=4 -verbose
+./Simulator/simulator -comparative   game_map=maps/map1.txt   game_managers_folder=class_gm   algorithm1=class_algo/Algorithm_206038929_314620071.so   algorithm2=class_algo/Algorithm_207174533_321321945.so   -verbose
+
+./Simulator/simulator -competition \
+  game_maps_folder=maps \
+  game_manager=class_gm/GameManager_209277367_322542887.so \
+  algorithms_folder=class_algo \
+  num_threads=4 \
+  -verbose
 
 
-//     ./simulator -competition \
-//     game_maps_folder=maps \
-//     game_manager=GameManager1.so \
-//     algorithms_folder=algorithmsSO \
-//     num_threads=4 -verbose
-
+*/

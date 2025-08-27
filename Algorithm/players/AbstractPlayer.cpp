@@ -422,7 +422,7 @@ shell *AbstractPlayer::findClosestShell(Vector2D target_pos)
                 break; // Stop checking this shell
             }
             
-            if (distance > width * height)  // Safety check to prevent infinite loops
+            if (static_cast<size_t>(distance) > width * height)  // Safety check to prevent infinite loops
             {
                 if (DEBUG_ENABLED) {
                     cout << "[DEBUG] findClosestShell: safety break - too many steps" << endl;

@@ -3,6 +3,9 @@
 #include <functional>
 #include <memory>
 #include "GameResult.h"
+#include "Player.h"
+#include "TankAlgorithm.h"
+
 
 class AbstractGameManager {
 public:

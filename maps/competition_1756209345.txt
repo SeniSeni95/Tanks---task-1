@@ -1,5 +1,0 @@
-game_maps_folder=maps
-game_manager=GameManager
-
-AggressiveTank.so 7
-CalmTank.so 1

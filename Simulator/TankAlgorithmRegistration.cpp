@@ -1,4 +1,7 @@
-TankAlgorithmRegistration::TankAlgorithmRegistration(MyTankAlgorithmFactory factory) {
-    auto& regsitrar = AlgorithmRegistrar::getAlgorithmRegistrar();
-    regsitrar.addTankAlgorithmFactoryToLastEntry(std::move(factory));
+#include "TankAlgorithmRegistration.h"   // <-- include your declaration
+#include "AlgorithmRegistrar.h"
+
+TankAlgorithmRegistration::TankAlgorithmRegistration(TankAlgorithmFactory factory) {
+    auto& registrar = AlgorithmRegistrar::getAlgorithmRegistrar();
+    registrar.addTankAlgorithmFactoryToLastEntry(std::move(factory));
 }

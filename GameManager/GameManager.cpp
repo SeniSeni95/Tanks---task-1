@@ -47,6 +47,8 @@ GameResult GameManager::run(
     MyTankAlgorithmFactory player1_tank_algo_factory,
     MyTankAlgorithmFactory player2_tank_algo_factory
 ) {
+    (void)name1;
+    (void)name2;
     std::vector<int> tank_counters(3, 0);
     if (DEBUG_ENABLED) {
         std::cout << "[DEBUG] Building board from SatelliteView...\n";
