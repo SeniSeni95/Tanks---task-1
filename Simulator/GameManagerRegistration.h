@@ -2,7 +2,5 @@
 #include "GameManagerRegistrar.h"
 
 struct GameManagerRegistration {
-    GameManagerRegistration(std::function<std::unique_ptr<AbstractGameManager>()> f) {
-        GameManagerRegistrar::get().addFactory(std::move(f));
-    }
+    GameManagerRegistration(std::function<std::unique_ptr<AbstractGameManager>(bool)> f);
 };

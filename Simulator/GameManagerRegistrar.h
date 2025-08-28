@@ -5,13 +5,13 @@
 #include "../common/AbstractGameManager.h"
 
 class GameManagerRegistrar {
-    std::vector<std::function<std::unique_ptr<AbstractGameManager>()>> factories;
+    std::vector<std::function<std::unique_ptr<AbstractGameManager>(bool)>> factories;
     static GameManagerRegistrar registrar;
 
 public:
     static GameManagerRegistrar& get();
 
-    void addFactory(std::function<std::unique_ptr<AbstractGameManager>()> f) {
+    void addFactory(std::function<std::unique_ptr<AbstractGameManager>(bool)> f) {
         factories.push_back(std::move(f));
     }
 
@@ -24,7 +24,7 @@ public:
     void clear() { factories.clear(); }
 
     // return the most recently registered GM factory
-    std::function<std::unique_ptr<AbstractGameManager>()> last() const {
+    std::function<std::unique_ptr<AbstractGameManager>(bool)> last() const {
         return factories.back();
     }
 };
