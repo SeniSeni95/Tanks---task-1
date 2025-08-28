@@ -7,12 +7,14 @@
 #include "../common/TankAlgorithm.h"
 
 class AlgorithmRegistrar {
+public:
     class AlgorithmAndPlayerFactories {
         std::string so_name;
         TankAlgorithmFactory tankAlgorithmFactory;
         PlayerFactory playerFactory;
 
-    public:
+    public:   // <-- this makes constructor + methods accessible!
+
         AlgorithmAndPlayerFactories(const std::string& so_name) : so_name(so_name) {}
 
         void setTankAlgorithmFactory(TankAlgorithmFactory&& factory) {
@@ -44,10 +46,12 @@ class AlgorithmRegistrar {
         bool hasTankAlgorithmFactory() const { return tankAlgorithmFactory != nullptr; }
     };
 
+private:
     std::vector<AlgorithmAndPlayerFactories> algorithms;
     static AlgorithmRegistrar registrar;
 
 public:
+    using Entry = AlgorithmAndPlayerFactories;
     static AlgorithmRegistrar& getAlgorithmRegistrar();
 
     void createAlgorithmFactoryEntry(const std::string& name) {
