@@ -12,8 +12,8 @@
 #include <algorithm>
 #include <map>
 
-#include "../algorithm/tanks/AggressiveTank.h"
-#include "../algorithm/tanks/CalmTank.h"
+#include "../Algorithm/tanks/AggressiveTank.h"
+#include "../Algorithm/tanks/CalmTank.h"
 #include "MyPlayerFactory.h"
 #include "MyTankAlgorithmFactory.h"
 

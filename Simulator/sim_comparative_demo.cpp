@@ -14,8 +14,8 @@
 #include <algorithm>  // for std::equal
 #include <iostream>   // optional, for debug
 
-#include "../algorithm/tanks/AggressiveTank.h"
-#include "../algorithm/tanks/CalmTank.h"
+#include "../Algorithm/tanks/AggressiveTank.h"
+#include "../Algorithm/tanks/CalmTank.h"
 #include "MyPlayerFactory.h"
 #include "MyTankAlgorithmFactory.h"
 
