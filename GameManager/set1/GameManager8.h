@@ -11,7 +11,7 @@
 #include "../common/AbstractGameManager.h"
 #include "../common/GameResult.h"
 #include "../common/ActionRequest.h"
-#include "../algorithm/MyTankAlgorithmFactory.h"
+#include "../Algorithm/MyTankAlgorithmFactory.h"
 
 class GameManager8 : public AbstractGameManager {
 public:

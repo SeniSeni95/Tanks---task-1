@@ -1,6 +1,6 @@
 #include "GameManager10.h"
-#include "../algorithm/MyTankAlgorithmFactory.h"  // Fix include path
-#include "../algorithm/MyPlayerFactory.h"
+#include "../Algorithm/MyTankAlgorithmFactory.h"  // Fix include path
+#include "../Algorithm/MyPlayerFactory.h"
 #include "../common/PlayerFactory.h"         // Fix include path
 #include "../GameManager/Board.h"            // Fix include path
 #include "../common/SatelliteView.h"         // Fix include path
