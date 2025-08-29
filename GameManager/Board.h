@@ -95,6 +95,7 @@ public:
     
     void print_board();
     std::unique_ptr<game_board> dummy_copy() const;
+    std::unique_ptr<game_board> symbol_copy() const;
     int countAliveTanksForPlayer(char symbol) const;
     std::string get_board_state();
     

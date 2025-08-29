@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include "GameObject.h"
 #include "../common/SatelliteView.h"
+#include "../common/SymbolObject.h"
 
 // --------------------
 // cell methods
@@ -135,6 +136,38 @@ std::string game_board::get_board_state() {
         state += std::to_string(s->just_created);
     }
     return state;
+}
+
+std::unique_ptr<game_board> game_board::symbol_copy() const {
+    // Build empty board grid
+    std::vector<std::vector<cell>> arr_copy;
+    arr_copy.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        std::vector<cell> row;
+        row.reserve(m);
+        for (int j = 0; j < m; ++j) {
+            row.emplace_back(i, j);
+        }
+        arr_copy.push_back(std::move(row));
+    }
+
+    auto new_board = std::make_unique<game_board>(n, m, std::move(arr_copy));
+
+    // Copy only symbols into SymbolObjects
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            const auto& src_cell = arr[i][j];
+            auto& dst_cell = new_board->get_cell(i, j);
+
+            for (const auto& obj_ptr : src_cell.objects) {
+                char s = obj_ptr->get_symbol();
+                auto clone = std::make_shared<SymbolObject>(i, j, s);
+                dst_cell.add_Object(clone);
+            }
+        }
+    }
+
+    return new_board;
 }
 
 std::unique_ptr<game_board> game_board::dummy_copy() const {

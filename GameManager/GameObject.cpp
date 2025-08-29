@@ -21,7 +21,7 @@ game_object::game_object(int x, int y, char symbol)
 game_object::game_object()
     : x(0), y(0), symbol(' ') {}
 
-char game_object::get_symbol() {
+char game_object::get_symbol() const {
     return symbol;
 }
 
@@ -56,7 +56,7 @@ shell::shell(cell* curcell, int directionx, int directiony)
     set_shell_symbol();
 }
 
-char shell::get_symbol() {
+char shell::get_symbol() const{
     return '*'; // or symbol if you want to use a field
 }
 void shell::shell_move_forward(game_board& board) {
@@ -127,7 +127,7 @@ tank::tank(char symbol, int player_number, int tank_number, int directionx, int 
     y = curcell->get_Y();
     set_cannon_symbol();
 }
-char tank::get_symbol() {
+char tank::get_symbol() const {
     return symbol; // or whatever field you use for the tank's symbol
 }
 void tank::move_forward(game_board& board) {

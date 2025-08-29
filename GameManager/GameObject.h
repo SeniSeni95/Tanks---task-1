@@ -24,7 +24,7 @@ protected:
 public:
     game_object();
     game_object(int x, int y, char symbol);
-    virtual char get_symbol();
+    virtual char get_symbol() const;
     virtual ~game_object() = default;
 
     void set_symbol(char s);
@@ -53,7 +53,7 @@ public:
 
 
     shell(cell* curcell, int directionx, int directiony);
-    char get_symbol() override;
+    char get_symbol() const override;
     void shell_move_forward(game_board& board);
     void set_shell_symbol();
     std::string to_string() override;
@@ -78,7 +78,7 @@ public:
     bool alive;
 
     tank(char symbol, int player_number, int tank_number, int directionx, int directiony, cell* curcell, TankAlgorithm* algo);
-    char get_symbol() override;
+    char get_symbol() const override;
     void move_forward(game_board& board);
     void move_backwards(game_board& board);
     void rotate_4(std::string direction);

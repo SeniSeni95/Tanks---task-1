@@ -1,19 +1,25 @@
 #pragma once
 #include "GameObject.h"
-#include <string>
+
+
+// Debug control - set to true to enable debugging, false to disable
+inline constexpr bool DEBUG_SYMBOL = true;
 
 class SymbolObject : public game_object {
-    char symbol;
 public:
-    // call base ctor (x, y, symbol)
-    SymbolObject(int x, int y, char s)
-        : game_object(x, y, s), symbol(s) {}
+   SymbolObject(int x, int y, char s)
+    : game_object(x, y, s) {
+    if (DEBUG_SYMBOL)
+        std::cout << "[DEBUG] SymbolObject ctor at (" << x << "," << y << ") with '" << s << "'\n";
+}
 
-    // override get_symbol (non-const to match base)
-    char get_symbol() override { return symbol; }
+    char get_symbol() const override {
+    if (DEBUG_SYMBOL)
+        std::cout << "[DEBUG] SymbolObject::get_symbol() returns '" << symbol << "'\n";
+    return symbol;
+}
 
-    // implement pure virtual
     std::string to_string() override {
-        return std::string(1, symbol);
+        return "[ " + std::string(1, symbol) + " ]";
     }
 };
