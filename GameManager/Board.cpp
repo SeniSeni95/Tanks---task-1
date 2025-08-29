@@ -500,4 +500,3 @@ void game_board::simulate_step(const std::tuple<int, int, std::string>& tank_com
     std::unordered_set<tank*> dummy_recently_killed;
     do_step(&dummy_recently_killed);
 }
-

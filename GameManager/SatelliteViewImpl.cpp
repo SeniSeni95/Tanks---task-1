@@ -3,7 +3,7 @@
 
 
 // Debug control - set to true to enable debugging, false to disable
-bool DEBUG_SAT = true;
+bool DEBUG_SAT = false;
 
 void SatelliteViewImpl::updateCopy(const game_board& original) {
     boardCopy = std::unique_ptr<game_board>(original.dummy_copy());

@@ -20,12 +20,10 @@
 // Debug control - set to true to enable debugging, false to disable
 static const bool DEBUG_ENABLED = false;
 
-GameManager::GameManager(PlayerFactory playerFactory,
-                         MyTankAlgorithmFactory tankFactory,
-                         bool verbose)
-    :  playerFactory(std::move(playerFactory)),
-      myTankAlgorithmFactory(std::move(tankFactory)), // use lowercase variable name to match header
-      verboseOutput(verbose) {
+namespace IDs_329506620_206055055 {
+
+GameManager::GameManager(bool verbose)
+    : verboseOutput(verbose) {
     satview = std::make_unique<SatelliteViewImpl>();
     if (verboseOutput) {
         std::string outName = "output_verbose.txt";
@@ -77,19 +75,19 @@ for (size_t i = 0; i < map_width; ++i) {
             row.back().add_Object(std::make_shared<mine>('@', &row.back()));
         }
        else if (c == '1' || c == '2') {
-    int player_idx = (c == '1' ? 0 : 1);   // 0 for Player1, 1 for Player2
-    int tank_number = ++tank_counters[player_idx];
+    int player_idx = (c == '1' ? 1 : 2);   // 1 for Player1, 2 for Player2
+    int tank_number = tank_counters[player_idx-1]++;
 
-    int directionx = (player_idx == 0) ? -1 : 1;  // Player1 faces left, Player2 faces right
+    int directionx = (player_idx == 1) ? -1 : 1;  // Player1 faces left, Player2 faces right
 
     // Tanks use player_number = 1/2 (NOT 0/1), just like Task 2
-    auto t = std::make_shared<tank>(c, player_idx + 1, tank_number,
+    auto t = std::make_shared<tank>(c, player_idx, tank_number,
                                     directionx, 0, &row.back(), nullptr);
     row.back().add_Object(t);
     tempTanks.push_back(t);
 
     // Algorithms always created with 0/1 indices (NOT 1/2)
-  auto algo = (player_idx == 0
+  auto algo = (player_idx == 1
     ? player1_tank_algo_factory(1, tank_number)  // Player 1
     : player2_tank_algo_factory(2, tank_number)  // Player 2
 );
@@ -100,7 +98,7 @@ for (size_t i = 0; i < map_width; ++i) {
     } else {
         if (DEBUG_ENABLED) {
             std::cerr << "[ERROR] Tank factory returned nullptr for P"
-                      << (player_idx + 1) << " T" << tank_number << "\n";
+                      << (player_idx) << " T" << tank_number << "\n";
         }
     }
 }
@@ -328,3 +326,15 @@ std::string GameManager::commandStringToEnumName(const std::string& cmd) {
     if (cmd.find("skip") == 0) return "DoNothing";
     return cmd; // fallback for "killed" or unknown
 }
+
+} // namespace IDs_329506620_206055055
+
+#include "../Simulator/GameManagerRegistration.h"
+
+namespace {
+    static GameManagerRegistration register_me_game_manager(
+        [] (bool verbose) {
+            return std::make_unique<IDs_329506620_206055055::GameManager>(verbose);
+        }
+    );
+} // end anonymous namespace

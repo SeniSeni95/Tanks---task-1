@@ -1,0 +1,28 @@
+game_map=maps/map2.txt
+algorithm1=Algorithm_207174533_321321945.so
+algorithm2=Algorithm_212535058_324022904.so
+
+GameManager_206038929_314620071.so
+Player 1 won - ALL_TANKS_DEAD
+9
+##########
+# 1      #
+#        #
+#        #
+#   @   1#
+#1       #
+#   #    #
+##########
+
+GameManager_322573304_322647603.so
+Player 1 won - ALL_TANKS_DEAD
+13
+##########
+# 1      #
+#        #
+#        #
+#   @   1#
+#1       #
+#   #    #
+##########
+

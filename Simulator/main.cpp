@@ -28,6 +28,7 @@ namespace fs = std::filesystem;
 
 // Debug control - set to true to enable debugging, false to disable
  bool DEBUG_MAIN = true;
+ bool DEBUG_MAP  = false;
 
 // -------------------------------
 // Loader helpers
@@ -72,7 +73,7 @@ struct LoadedMap {
 };
 
 LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Building map from file: " << filename << "\n";
     }
 
@@ -85,7 +86,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
 
     std::string line;
     getline(file, line); // skip description
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Map description: " << line << "\n";
     }
 
@@ -95,7 +96,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
     getline(file,line); sscanf(line.c_str(),"Rows = %d",&rows);
     getline(file,line); sscanf(line.c_str(),"Cols = %d",&cols);
 
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Map parameters: MaxSteps=" << maxSteps
                   << ", NumShells=" << numShells
                   << ", Rows=" << rows
@@ -115,7 +116,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
     }
     auto board = std::make_unique<game_board>(cols, rows, std::move(arr));
 
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Board created with dimensions "
                   << cols << "x" << rows << "\n";
     }
@@ -125,7 +126,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
 
     for (int j=0;j<rows;j++) {
         getline(file,line);
-        if (DEBUG_MAIN) {
+        if (DEBUG_MAP) {
             std::cout << "[DEBUG] Row " << j << ": " << line << "\n";
         }
 
@@ -140,7 +141,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
                 if (ch=='1' || ch=='2') {
                     int pnum = (ch=='1')?0:1;
                     int tnum = ++tank_counters[pnum];
-                    if (DEBUG_MAIN) {
+                    if (DEBUG_MAP) {
                         std::cout << "[DEBUG] Found tank symbol P" << (pnum+1)
                                   << " T" << tnum
                                   << " at (" << i << "," << j << ")\n";
@@ -151,7 +152,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
     }
     file.close();
 
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Total tanks (by symbol): P1=" << tank_counters[0]
                   << ", P2=" << tank_counters[1] << "\n";
     }
@@ -159,7 +160,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
     auto p1 = pf(1,cols,rows,maxSteps,numShells);
     auto p2 = pf(2,cols,rows,maxSteps,numShells);
 
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Players created successfully\n";
     }
 
@@ -177,7 +178,7 @@ LoadedMap buildMapFromFile(const std::string& filename, PlayerFactory& pf) {
     lm.p1 = std::move(p1);
     lm.p2 = std::move(p2);
 
-    if (DEBUG_MAIN) {
+    if (DEBUG_MAP) {
         std::cout << "[DEBUG] Map loading completed successfully\n";
     }
 
@@ -204,6 +205,109 @@ struct AlgorithmEntry {
                    const AlgorithmRegistrar::Entry& fac)
         : file(f), factories(fac) {}
 };
+
+std::string makeComparativeFilename(const std::string& gmFolder) {
+    auto now = std::chrono::system_clock::now();
+    auto t   = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << gmFolder << "/comparative_results_" << t << ".txt";
+    return ss.str();
+}
+
+
+
+std::string reasonToString(GameResult::Reason r) {
+    switch (r) {
+        case GameResult::ALL_TANKS_DEAD: return "ALL_TANKS_DEAD";
+        case GameResult::MAX_STEPS:      return "MAX_STEPS";
+        case GameResult::ZERO_SHELLS:    return "ZERO_SHELLS";
+        default:                         return "UNKNOWN";
+    }
+}
+std::string winnerToString(int w) {
+    if (w == 1) return "Player 1";
+    if (w == 2) return "Player 2";
+    return "Tie";
+}
+
+void writeComparativeResults(const std::string& gmFolder,
+                             const std::string& mapfile,
+                             const std::string& algo1Name,
+                             const std::string& algo2Name,
+                             const std::vector<std::pair<std::string,GameResult>>& results,
+                             size_t width, size_t height)
+{
+    std::string filename = makeComparativeFilename(gmFolder);
+    std::ofstream fout(filename);
+    std::ostream& out = fout.is_open() ? fout : std::cout;
+    if (!fout) {
+        std::cerr << "[ERROR] Could not create " << filename << ", writing to stdout instead\n";
+    }
+
+    // header
+    out << "game_map="   << mapfile   << "\n";
+    out << "algorithm1=" << algo1Name << "\n";
+    out << "algorithm2=" << algo2Name << "\n\n";
+
+    // group by identical results
+    std::vector<bool> used(results.size(), false);
+    for (size_t i=0;i<results.size();i++) {
+        if (used[i]) continue;
+        std::vector<std::string> sameGMs;
+        sameGMs.push_back(results[i].first);
+
+        for (size_t j=i+1;j<results.size();j++) {
+            if (used[j]) continue;
+            const auto& r1 = results[i].second;
+            const auto& r2 = results[j].second;
+            if (r1.winner==r2.winner &&
+                r1.reason==r2.reason &&
+                r1.rounds==r2.rounds &&
+                r1.gameState && r2.gameState)
+            {
+                bool identical=true;
+                for (size_t x=0;x<width && identical;x++)
+                    for (size_t y=0;y<height;y++)
+                        if (r1.gameState->getObjectAt(x,y)!=
+                            r2.gameState->getObjectAt(x,y)) {
+                            identical=false; break;
+                        }
+                if (identical) {
+                    sameGMs.push_back(results[j].first);
+                    used[j]=true;
+                }
+            }
+        }
+
+        // a) list of GMs
+        for (size_t k=0;k<sameGMs.size();k++) {
+            if (k>0) out<<",";
+            out<<sameGMs[k];
+        }
+        out<<"\n";
+
+        // b) result message
+        if (results[i].second.winner==0)
+            out<<"Tie - "<<reasonToString(results[i].second.reason)<<"\n";
+        else
+            out<<"Player "<<results[i].second.winner<<" won - "<<reasonToString(results[i].second.reason)<<"\n";
+
+        // c) round
+        out<<results[i].second.rounds<<"\n";
+
+        // d) final board
+        if (results[i].second.gameState) {
+            for (size_t y=0;y<height;y++) {
+                for (size_t x=0;x<width;x++)
+                    out<<results[i].second.gameState->getObjectAt(x,y);
+                out<<"\n";
+            }
+        }
+
+        out<<"\n";
+    }
+}
+
 
 // -------------------------------
 // MAIN
@@ -243,7 +347,7 @@ int main(int argc, char* argv[]) {
 
     if (comparative==competition) { printUsage("Must specify exactly one of -comparative or -competition"); return 1;}
 
-   // -------------------------------
+// -------------------------------
 // Comparative mode
 // -------------------------------
 if (comparative) {
@@ -265,20 +369,11 @@ if (comparative) {
 
     std::cout << "[MODE] Comparative\n";
     if (verbose) std::cout << "[FLAG] Verbose enabled\n";
-    if (DEBUG_MAIN) {
-        std::cout << "[DEBUG] Threads: " << numThreads << "\n";
-        std::cout << "[DEBUG] Map: " << mapfile << "\n";
-        std::cout << "[DEBUG] GM Folder: " << gmFolder << "\n";
-        std::cout << "[DEBUG] Algorithm 1: " << algo1File << "\n";
-        std::cout << "[DEBUG] Algorithm 2: " << algo2File << "\n";
-    }
 
     // --- load the 2 algorithms ---
     AlgorithmRegistrar::getAlgorithmRegistrar().clear();
-    if (DEBUG_MAIN) std::cout << "[DEBUG] Loading algorithms...\n";
-
-    loadAlgorithmSO(algo1File, algo1File);
-    loadAlgorithmSO(algo2File, algo2File);
+    loadAlgorithmSO(algo1File, fs::path(algo1File).filename().string());
+    loadAlgorithmSO(algo2File, fs::path(algo2File).filename().string());
 
     auto& registrar = AlgorithmRegistrar::getAlgorithmRegistrar();
     if (registrar.count() < 2) {
@@ -289,7 +384,8 @@ if (comparative) {
     auto algoEntry1 = *it;
     auto algoEntry2 = *(++it);
 
-    if (DEBUG_MAIN) std::cout << "[DEBUG] Algorithms loaded successfully\n";
+    std::string algo1Name = fs::path(algo1File).filename().string();
+    std::string algo2Name = fs::path(algo2File).filename().string();
 
     // --- scan GM folder ---
     std::vector<std::string> gmFiles;
@@ -301,22 +397,18 @@ if (comparative) {
         std::cerr << "[ERROR] No game managers in " << gmFolder << "\n";
         return 1;
     }
-    if (DEBUG_MAIN) {
-        std::cout << "[DEBUG] Found " << gmFiles.size() << " game managers:\n";
-        for (const auto& gmFile : gmFiles) std::cout << "[DEBUG]   " << gmFile << "\n";
-    }
 
     std::mutex resultsMutex;
-    std::vector<GameResult> allResults;
+    struct NamedResult { std::string gmName; GameResult result; };
+    std::vector<NamedResult> allResults;
     std::vector<std::thread> threads;
 
-    auto worker = [&](const std::string& gmFile) {
-        if (DEBUG_MAIN) {
-            std::cout << "[DEBUG] Worker thread started for GM: " << gmFile << "\n";
-        }
+    size_t width=0,height=0;
 
+    auto worker = [&](const std::string& gmFile) {
+        std::string gmName = fs::path(gmFile).filename().string();
         GameManagerRegistrar::get().clear();
-        loadGameManagerSO(gmFile);   // ✅ GM loader
+        loadGameManagerSO(gmFile);
 
         auto& gmReg = GameManagerRegistrar::get();
         if (gmReg.empty()) {
@@ -326,13 +418,11 @@ if (comparative) {
 
         std::unique_ptr<AbstractGameManager> gm;
         try {
-            auto factory = gmReg.last();
-            gm = factory(verbose);
+            gm = gmReg.last()(verbose);
             if (!gm) {
                 std::cerr << "[ERROR] GM factory returned null for: " << gmFile << "\n";
                 return;
             }
-            if (DEBUG_MAIN) std::cout << "[DEBUG] Game manager created for: " << gmFile << "\n";
         }
         catch (...) {
             std::cerr << "[ERROR] Exception while creating GM from " << gmFile << "\n";
@@ -348,16 +438,15 @@ if (comparative) {
         TankAlgorithmFactory tf2 = [&](int p, int t) { return algoEntry2.createTankAlgorithm(p, t); };
 
         LoadedMap map = buildMapFromFile(mapfile, pf);
-
-        if (DEBUG_MAIN) std::cout << "[DEBUG] Running game with GM: " << gmFile << "\n";
+        width=map.width; height=map.height;
 
         GameResult res;
         try {
             res = gm->run(
                 map.width, map.height, map.view, mapfile,
                 map.maxSteps, map.numShells,
-                *map.p1, "Algorithm1",
-                *map.p2, "Algorithm2",
+                *map.p1, algo1Name,
+                *map.p2, algo2Name,
                 tf1, tf2
             );
         }
@@ -366,17 +455,11 @@ if (comparative) {
             return;
         }
 
-        if (DEBUG_MAIN) {
-            std::cout << "[DEBUG] Game completed for GM: " << gmFile
-                      << " Winner: " << res.winner
-                      << " Rounds: " << res.rounds << "\n";
-        }
-
         std::lock_guard<std::mutex> lk(resultsMutex);
-        allResults.push_back(std::move(res));
+        allResults.push_back({gmName,std::move(res)});
     };
 
-    // --- thread batching like competition ---
+    // --- thread batching ---
     for (auto& gmFile : gmFiles) {
         threads.emplace_back(worker, gmFile);
         if (threads.size() >= numThreads) {
@@ -386,17 +469,79 @@ if (comparative) {
     }
     for (auto& t : threads) t.join();
 
-    if (DEBUG_MAIN)
-        std::cout << "[DEBUG] All comparative games completed. Results: " << allResults.size() << "\n";
+    // --- group identical results ---
+    std::vector<bool> used(allResults.size(), false);
+    auto outFile = [&](){
+        auto now = std::chrono::system_clock::now();
+        auto t   = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << gmFolder << "/comparative_results_" << t << ".txt";
+        return ss.str();
+    }();
 
-    std::cout << "=== Comparative Results ===\n";
-    for (size_t i = 0; i < allResults.size(); i++) {
-        auto& r = allResults[i];
-        std::cout << "Game " << (i+1) << " - Winner: " << r.winner
-                  << " Reason: " << r.reason
-                  << " Rounds: " << r.rounds << "\n";
+    std::ofstream fout(outFile);
+    std::ostream& out = fout.is_open() ? fout : std::cout;
+    if (!fout) {
+        std::cerr << "[ERROR] Could not create " << outFile << ", writing to stdout\n";
     }
+
+    out << "game_map="   << mapfile   << "\n";
+    out << "algorithm1=" << algo1Name << "\n";
+    out << "algorithm2=" << algo2Name << "\n\n";
+
+    for (size_t i=0;i<allResults.size();i++) {
+        if (used[i]) continue;
+        std::vector<std::string> sameGMs{allResults[i].gmName};
+        const auto& ri = allResults[i].result;
+
+        for (size_t j=i+1;j<allResults.size();j++) {
+            if (used[j]) continue;
+            const auto& rj = allResults[j].result;
+            bool identical = (ri.winner==rj.winner &&
+                              ri.reason==rj.reason &&
+                              ri.rounds==rj.rounds);
+            if (identical && ri.gameState && rj.gameState) {
+                for (size_t x=0;x<width && identical;x++)
+                    for (size_t y=0;y<height;y++)
+                        if (ri.gameState->getObjectAt(x,y)!=rj.gameState->getObjectAt(x,y))
+                            { identical=false; break; }
+            }
+            if (identical) {
+                sameGMs.push_back(allResults[j].gmName);
+                used[j]=true;
+            }
+        }
+
+        // a) GM list
+        for (size_t k=0;k<sameGMs.size();k++) {
+            if (k>0) out<<",";
+            out<<sameGMs[k];
+        }
+        out<<"\n";
+
+        // b) Result message
+        if (ri.winner==0)
+            out<<"Tie - "<<reasonToString(ri.reason)<<"\n";
+        else
+            out<<"Player "<<ri.winner<<" won - "<<reasonToString(ri.reason)<<"\n";
+
+        // c) round
+        out<<ri.rounds<<"\n";
+
+        // d) final board
+        if (ri.gameState) {
+            for (size_t y=0;y<height;y++) {
+                for (size_t x=0;x<width;x++)
+                    out<<ri.gameState->getObjectAt(x,y);
+                out<<"\n";
+            }
+        }
+        out<<"\n";
+    }
+
+    std::cout << "=== Comparative Results written to " << outFile << " ===\n";
 }
+
 
 // -------------------------------
 // Competition mode
@@ -417,159 +562,120 @@ if (competition) {
 
     std::cout << "[MODE] Competition\n";
     if (verbose) std::cout << "[FLAG] Verbose enabled\n";
-    if (DEBUG_MAIN) {
-        std::cout << "[DEBUG] Maps folder: " << mapsFolder << "\n";
-        std::cout << "[DEBUG] Game manager: " << gmFile << "\n";
-        std::cout << "[DEBUG] Algorithms folder: " << algFolder << "\n";
-        std::cout << "[DEBUG] Threads: " << numThreads << "\n";
-    }
 
     // --- load GM ---
-    if (DEBUG_MAIN) std::cout << "[DEBUG] Loading game manager: " << gmFile << "\n";
-    loadGameManagerSO(gmFile);  // ✅ GM uses its own loader
+    loadGameManagerSO(gmFile);
     auto& gmReg = GameManagerRegistrar::get();
     if (gmReg.empty()) {
         std::cerr << "[ERROR] No game managers registered!\n";
         return 1;
     }
-    std::unique_ptr<AbstractGameManager> gm;
-    try {
-        gm = gmReg.last()(verbose);
-        if (!gm) {
-            std::cerr << "[ERROR] GM factory returned null for: " << gmFile << "\n";
-            return 1;
-        }
-        if (DEBUG_MAIN) std::cout << "[DEBUG] Game manager created for: " << gmFile << "\n";
-    }
-    catch (const std::exception& e) {
-        std::cerr << "[ERROR] Exception while creating GM from " << gmFile
-                  << ": " << e.what() << "\n";
-        return 1;
-    }
+    std::unique_ptr<AbstractGameManager> gm = gmReg.last()(verbose);
 
-    // --- algorithm entries ---
-    struct AlgorithmEntry {
-        std::string file;
-        const AlgorithmRegistrar::Entry* factories;
-    };
-
-    std::vector<AlgorithmEntry> loadedAlgorithms;
+    // --- load algorithms ---
+    std::vector<AlgorithmEntry> algs;
     for (auto& entry : fs::directory_iterator(algFolder)) {
         if (entry.path().extension() != ".so") continue;
-
-        std::string algoFile = entry.path().string();
         AlgorithmRegistrar::getAlgorithmRegistrar().clear();
-        try {
-            loadAlgorithmSO(algoFile, algoFile);   // ✅ algorithms use algo loader
-            AlgorithmRegistrar::getAlgorithmRegistrar().validateLastRegistration();
-            auto& fac = *(AlgorithmRegistrar::getAlgorithmRegistrar().end() - 1);
-            loadedAlgorithms.push_back({algoFile, &fac});
-            if (DEBUG_MAIN) std::cout << "[DEBUG] Loaded algorithm: " << algoFile << "\n";
-        }
-        catch (...) {
-            std::cerr << "[ERROR] Bad or invalid algorithm: " << algoFile << "\n";
-            AlgorithmRegistrar::getAlgorithmRegistrar().removeLast();
-        }
-    }
+        loadAlgorithmSO(entry.path().string(), entry.path().string());
+        if (AlgorithmRegistrar::getAlgorithmRegistrar().count() == 0) continue;
 
-    if (loadedAlgorithms.empty()) {
-        std::cerr << "[ERROR] No valid algorithms loaded!\n";
+        std::string base = entry.path().filename().string(); // basename only
+        algs.push_back({ base, *AlgorithmRegistrar::getAlgorithmRegistrar().begin() });
+
+        if (DEBUG_MAIN) std::cout << "[DEBUG] Loaded algorithm: " << base << "\n";
+    }
+    size_t N = algs.size();
+    if (N < 2) {
+        std::cerr << "[ERROR] Need at least 2 algorithms for competition\n";
         return 1;
     }
 
-    // --- maps ---
+    // --- collect maps ---
     std::vector<std::string> maps;
     for (auto& entry : fs::directory_iterator(mapsFolder)) {
         if (entry.path().extension() == ".txt")
             maps.push_back(entry.path().string());
     }
-    if (DEBUG_MAIN) {
-        std::cout << "[DEBUG] Found " << maps.size() << " maps:\n";
-        for (auto& m : maps) std::cout << "[DEBUG]   " << m << "\n";
+    if (maps.empty()) {
+        std::cerr << "[ERROR] No maps in " << mapsFolder << "\n";
+        return 1;
     }
 
-    // --- competition runs ---
+    // --- scores ---
+    std::map<std::string,int> scores;
     std::mutex scoreMutex;
-    std::map<std::string, int> scores;
     std::vector<std::thread> threads;
 
-    auto worker = [&](const std::string& mapFile, const AlgorithmEntry& algoPair) {
-        const std::string& algoFile = algoPair.file;
-        const auto* entry = algoPair.factories;
-
-        if (DEBUG_MAIN) {
-            std::cout << "[DEBUG] Competition worker started: "
-                      << algoFile << " on " << mapFile << "\n";
-        }
-
+    auto worker = [&](const std::string& mapFile,
+                      const AlgorithmEntry& a1,
+                      const AlgorithmEntry& a2) {
         PlayerFactory pf = [&](int p, size_t x, size_t y, size_t maxS, size_t numS) {
-            return entry->createPlayer(p, x, y, maxS, numS);
+            return (p==1)
+                ? a1.factories.createPlayer(p,x,y,maxS,numS)
+                : a2.factories.createPlayer(p,x,y,maxS,numS);
         };
-        TankAlgorithmFactory tf = [&](int p, int t) {
-            return entry->createTankAlgorithm(p, t);
-        };
+        TankAlgorithmFactory tf1 = [&](int p,int t){ return a1.factories.createTankAlgorithm(p,t); };
+        TankAlgorithmFactory tf2 = [&](int p,int t){ return a2.factories.createTankAlgorithm(p,t); };
 
-        LoadedMap map;
-        try {
-            map = buildMapFromFile(mapFile, pf);
-        }
-        catch (const std::exception& e) {
-            std::cerr << "[ERROR] Failed to build map " << mapFile
-                      << ": " << e.what() << "\n";
-            return;
-        }
-
-        GameResult res;
-        try {
-            res = gm->run(
-                map.width, map.height, map.view, mapFile,
-                map.maxSteps, map.numShells,
-                *map.p1, algoFile,
-                *map.p2, algoFile,
-                tf, tf
-            );
-        }
-        catch (...) {
-            std::cerr << "[ERROR] Exception while running GM with "
-                      << algoFile << " on " << mapFile << "\n";
-            return;
-        }
-
-        if (DEBUG_MAIN) {
-            std::cout << "[DEBUG] Competition game completed: "
-                      << algoFile << " Winner: " << res.winner
-                      << " Rounds: " << res.rounds << "\n";
-        }
+        LoadedMap map = buildMapFromFile(mapFile, pf);
+        GameResult res = gm->run(map.width,map.height,map.view,mapFile,
+                                 map.maxSteps,map.numShells,
+                                 *map.p1,a1.file,*map.p2,a2.file,
+                                 tf1,tf2);
 
         std::lock_guard<std::mutex> lk(scoreMutex);
-        if (res.winner == 1) scores[algoFile] += 3;
-        else if (res.winner == 2) scores[algoFile] += 3;
-        else scores[algoFile] += 1;
+        if (res.winner == 1) scores[a1.file]+=3;
+        else if (res.winner==2) scores[a2.file]+=3;
+        else { scores[a1.file]+=1; scores[a2.file]+=1; }
     };
 
-    if (DEBUG_MAIN) {
-        std::cout << "[DEBUG] Starting competition with "
-                  << (maps.size() * loadedAlgorithms.size())
-                  << " total games\n";
-    }
+    // --- run schedule ---
+    for (size_t k=0;k<maps.size();k++) {
+        for (size_t i=0;i<N;i++) {
+            size_t j = (i + 1 + k % (N-1)) % N;
+            if (j==i) continue;
+            // Avoid duplicate if N even and k==N/2 -1
+            if (N%2==0 && k==(N/2 -1) && j==(i+N/2)%N) continue;
 
-    for (auto& m : maps) {
-        for (auto& a : loadedAlgorithms) {
-            auto aCopy = a;
-            threads.emplace_back(worker, m, aCopy);
-            if (threads.size() >= (size_t)numThreads) {
-                for (auto& t : threads) t.join();
-                threads.clear();
+            if (numThreads<=1) {
+                worker(maps[k], algs[i], algs[j]);
+            } else {
+                threads.emplace_back(worker,maps[k],algs[i],algs[j]);
+                if (threads.size()>= (size_t)numThreads) {
+                    for (auto& t:threads) t.join();
+                    threads.clear();
+                }
             }
         }
     }
-    for (auto& t : threads) t.join();
+    for (auto& t:threads) t.join();
 
-    if (DEBUG_MAIN) std::cout << "[DEBUG] All competition games completed\n";
+    // --- output file ---
+    auto now = std::chrono::system_clock::now();
+    auto t   = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << algFolder << "/competition_" << t << ".txt";
+    std::ofstream fout(ss.str());
+    std::ostream& out = fout.is_open() ? fout : std::cout;
+    if (!fout) {
+        std::cerr << "[ERROR] Could not create " << ss.str() << ", writing to stdout\n";
+    }
 
-    std::cout << "=== Competition Results ===\n";
-    for (auto& [alg, score] : scores) {
-        std::cout << alg << ": " << score << "\n";
+    out << "game_maps_folder=" << mapsFolder << "\n";
+    out << "game_manager=" << fs::path(gmFile).filename().string() << "\n\n";
+
+    // sort by score desc
+    std::vector<std::pair<std::string,int>> sorted(scores.begin(),scores.end());
+    std::sort(sorted.begin(),sorted.end(),
+              [](auto& a,auto& b){return a.second>b.second;});
+    for (auto& [f,s] : sorted) {
+        out << f << " " << s << "\n";
+    }
+
+    std::cout << "\n=== Competition Results ===\n";
+    for (auto& [f,s] : sorted) {
+        std::cout << f << ": " << s << "\n";
     }
 }
 

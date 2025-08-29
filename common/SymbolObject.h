@@ -3,7 +3,7 @@
 
 
 // Debug control - set to true to enable debugging, false to disable
-inline constexpr bool DEBUG_SYMBOL = true;
+inline constexpr bool DEBUG_SYMBOL = false;
 
 class SymbolObject : public game_object {
 public:

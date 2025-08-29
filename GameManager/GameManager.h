@@ -13,11 +13,11 @@
 #include "../common/ActionRequest.h"
 #include "../Algorithm/MyTankAlgorithmFactory.h"
 
+namespace IDs_329506620_206055055 {
+
 class GameManager : public AbstractGameManager {
 public:
-    GameManager(PlayerFactory playerFactory,
-                MyTankAlgorithmFactory tankFactory,
-                bool verbose);
+    GameManager(bool verbose);
 
     GameResult run(
         size_t map_width, size_t map_height,
@@ -44,3 +44,5 @@ private:
     bool verboseOutput = false;
     std::ofstream verboseFile;
 };
+
+} // namespace IDs_329506620_206055055
