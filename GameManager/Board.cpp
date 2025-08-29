@@ -171,15 +171,15 @@ std::unique_ptr<game_board> game_board::symbol_copy() const {
 }
 
 std::unique_ptr<game_board> game_board::dummy_copy() const {
-    std::vector<std::vector<cell>> arr_copy;
+   std::vector<std::vector<cell>> arr_copy;
     arr_copy.reserve(n);
-    for (int j = 0; j < n; ++j) {
-        std::vector<cell> col;
-        col.reserve(m);
-        for (int i = 0; i < m; ++i) {
-            col.emplace_back(j, i);
+    for (int i = 0; i < n; ++i) {
+        std::vector<cell> row;
+        row.reserve(m);
+        for (int j = 0; j < m; ++j) {
+            row.emplace_back(i, j);  // row = i, col = j
         }
-        arr_copy.push_back(std::move(col));
+        arr_copy.push_back(std::move(row));
     }
 
     auto new_board = std::make_unique<game_board>(n, m, std::move(arr_copy));

@@ -1,0 +1,4 @@
+game_map=maps/map1.txt
+algorithm1=Algorithm_329506620_206055055.so
+algorithm2=Algorithm_329506620_2060550552.so
+

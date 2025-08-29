@@ -6,7 +6,7 @@
 bool DEBUG_SAT = false;
 
 void SatelliteViewImpl::updateCopy(const game_board& original) {
-    boardCopy = std::unique_ptr<game_board>(original.dummy_copy());
+    boardCopy = original.dummy_copy();  // just assign, no extra wrapper
 }
 
 void SatelliteViewImpl::updateSymbols(const game_board& original) {
